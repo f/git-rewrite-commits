@@ -25,6 +25,8 @@ program
   .option('--skip-backup', 'Skip creating a backup branch (not recommended)')
   .option('--no-skip-well-formed', 'Process all commits, even well-formed ones')
   .option('--min-quality-score <score>', 'Minimum quality score (1-10) to consider well-formed', parseFloat)
+  .option('-t, --template <format>', 'Custom commit message template (e.g., "(feat): message" or "[JIRA-XXX] type: message")')
+  .option('-l, --language <lang>', 'Language for commit messages (default: "en")', 'en')
   .action(async (options) => {
     try {
       // Check for API key
@@ -48,6 +50,8 @@ program
         skipBackup: options.skipBackup,
         skipWellFormed: options.skipWellFormed !== false,
         minQualityScore: options.minQualityScore,
+        template: options.template,
+        language: options.language,
       });
 
       await rewriter.rewrite();
