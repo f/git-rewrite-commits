@@ -14,6 +14,8 @@ export interface RewriteOptions {
   verbose?: boolean;
   maxCommits?: number;
   skipBackup?: boolean;
+  skipWellFormed?: boolean;
+  minQualityScore?: number;
 }
 
 export interface CommitInfo {
@@ -40,6 +42,8 @@ export class GitCommitRewriter {
       dryRun: false,
       verbose: false,
       skipBackup: false,
+      skipWellFormed: true,
+      minQualityScore: 7,
       ...options
     };
   }
@@ -64,6 +68,62 @@ export class GitCommitRewriter {
         resolve(answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes');
       });
     });
+  }
+
+  private assessCommitQuality(message: string): { score: number; isWellFormed: boolean; reason: string } {
+    let score = 0;
+    const reasons: string[] = [];
+    
+    // Check for conventional commit format
+    const conventionalPattern = /^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\([^)]+\))?: .+/;
+    const hasConventionalFormat = conventionalPattern.test(message);
+    if (hasConventionalFormat) {
+      score += 4;
+      reasons.push('follows conventional format');
+    }
+
+    // Check message length (should be between 10 and 72 chars for first line)
+    const firstLine = message.split('\n')[0];
+    if (firstLine.length >= 10 && firstLine.length <= 72) {
+      score += 2;
+      reasons.push('appropriate length');
+    } else if (firstLine.length < 10) {
+      reasons.push('too short');
+    } else {
+      reasons.push('too long');
+    }
+
+    // Check for descriptive content (not generic)
+    const genericMessages = ['update', 'fix', 'change', 'modify', 'commit', 'initial', 'test', 'wip'];
+    const isGeneric = genericMessages.some(generic => 
+      message.toLowerCase() === generic || 
+      message.toLowerCase() === `${generic}.` ||
+      message.toLowerCase() === `${generic} commit`
+    );
+    if (!isGeneric) {
+      score += 2;
+      reasons.push('descriptive');
+    } else {
+      reasons.push('too generic');
+    }
+
+    // Check for present tense (good practice)
+    const presentTensePattern = /^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)?(\([^)]+\))?: [a-z]/;
+    if (presentTensePattern.test(message)) {
+      score += 1;
+      reasons.push('uses present tense');
+    }
+
+    // Check for no trailing period (conventional commits style)
+    if (!firstLine.endsWith('.')) {
+      score += 1;
+      reasons.push('no trailing period');
+    }
+
+    const isWellFormed = score >= (this.options.minQualityScore || 7);
+    const reason = reasons.join(', ');
+
+    return { score, isWellFormed, reason };
   }
 
   private async generateCommitMessage(
@@ -148,7 +208,9 @@ Return ONLY the commit message, nothing else.`;
       .filter(Boolean);
 
     if (this.options.maxCommits && this.options.maxCommits > 0) {
-      return commits.slice(0, this.options.maxCommits);
+      // Get the last N commits instead of first N
+      const startIndex = Math.max(0, commits.length - this.options.maxCommits);
+      return commits.slice(startIndex);
     }
 
     return commits;
@@ -292,6 +354,9 @@ process.stdin.on('end', () => {
     console.log(chalk.cyan('\n📝 Generating new commit messages with AI...\n'));
 
     const spinner = ora();
+    let skippedCount = 0;
+    let improvedCount = 0;
+    
     for (let i = 0; i < commits.length; i++) {
       const hash = commits[i];
       const progress = ((i + 1) / commits.length * 100).toFixed(1);
@@ -299,14 +364,28 @@ process.stdin.on('end', () => {
       try {
         const commitInfo = await this.getCommitInfo(hash, i);
         
-        spinner.start(chalk.blue(`[${progress}%] Processing: ${hash.substring(0, 8)} - "${commitInfo.message}"`));
+        // Check if the commit message is already well-formed
+        if (this.options.skipWellFormed) {
+          const quality = this.assessCommitQuality(commitInfo.message);
+          
+          if (quality.isWellFormed) {
+            skippedCount++;
+            spinner.info(chalk.cyan(`[${progress}%] ${hash.substring(0, 8)}: ✓ Already well-formed (score: ${quality.score}/10) - ${quality.reason}`));
+            continue;
+          } else {
+            spinner.start(chalk.blue(`[${progress}%] Processing: ${hash.substring(0, 8)} - "${commitInfo.message}" (needs improvement: ${quality.reason})`));
+          }
+        } else {
+          spinner.start(chalk.blue(`[${progress}%] Processing: ${hash.substring(0, 8)} - "${commitInfo.message}"`));
+        }
 
         // Generate new message with AI
         const newMessage = await this.generateCommitMessage(commitInfo.diff, commitInfo.files, commitInfo.message);
         
         if (newMessage !== commitInfo.message) {
           messageMap[hash] = newMessage;
-          spinner.succeed(chalk.green(`[${progress}%] ${hash.substring(0, 8)}: "${newMessage}"`));
+          improvedCount++;
+          spinner.succeed(chalk.green(`[${progress}%] ${hash.substring(0, 8)}: ✨ Improved to: "${newMessage}"`));
         } else {
           spinner.info(chalk.yellow(`[${progress}%] ${hash.substring(0, 8)}: Keeping original message`));
         }
@@ -334,12 +413,22 @@ process.stdin.on('end', () => {
     fs.writeFileSync(mappingFile, JSON.stringify(orderedMessages, null, 2));
     console.log(chalk.green(`\n✅ Saved ${orderedMessages.length} commit messages`));
 
-    // Summary
+    // Enhanced Summary
     const changedCount = Object.keys(messageMap).length;
-    console.log(chalk.cyan(`\n📊 Summary: ${changedCount} out of ${commits.length} commits will be rewritten`));
+    console.log(chalk.cyan('\n📊 Summary:'));
+    console.log(chalk.blue(`  • Total commits analyzed: ${commits.length}`));
+    if (this.options.skipWellFormed) {
+      console.log(chalk.cyan(`  • Well-formed commits (skipped): ${skippedCount}`));
+    }
+    console.log(chalk.green(`  • Commits improved: ${improvedCount}`));
+    console.log(chalk.yellow(`  • Commits to be rewritten: ${changedCount}`));
 
     if (changedCount === 0) {
-      console.log(chalk.yellow('\nNo commit messages to change. Exiting.'));
+      if (skippedCount > 0) {
+        console.log(chalk.green('\n✨ All commits are already well-formed! No changes needed.'));
+      } else {
+        console.log(chalk.yellow('\nNo commit messages to change. Exiting.'));
+      }
       return;
     }
 

@@ -21,8 +21,10 @@ program
   .option('-b, --branch <branch>', 'Branch to rewrite (defaults to current branch)')
   .option('-d, --dry-run', 'Show what would be changed without modifying repository')
   .option('-v, --verbose', 'Show detailed output')
-  .option('--max-commits <number>', 'Maximum number of commits to process', parseInt)
+  .option('--max-commits <number>', 'Process only the last N commits', parseInt)
   .option('--skip-backup', 'Skip creating a backup branch (not recommended)')
+  .option('--no-skip-well-formed', 'Process all commits, even well-formed ones')
+  .option('--min-quality-score <score>', 'Minimum quality score (1-10) to consider well-formed', parseFloat)
   .action(async (options) => {
     try {
       // Check for API key
@@ -44,6 +46,8 @@ program
         verbose: options.verbose,
         maxCommits: options.maxCommits,
         skipBackup: options.skipBackup,
+        skipWellFormed: options.skipWellFormed !== false,
+        minQualityScore: options.minQualityScore,
       });
 
       await rewriter.rewrite();
@@ -68,8 +72,14 @@ ${chalk.bold('Examples:')}
   ${chalk.gray('# Use a different model')}
   $ git-rewrite-commits --model gpt-4
 
-  ${chalk.gray('# Process only first 10 commits')}
+  ${chalk.gray('# Process only the last 10 commits')}
   $ git-rewrite-commits --max-commits 10
+  
+  ${chalk.gray('# Process all commits, including well-formed ones')}
+  $ git-rewrite-commits --no-skip-well-formed
+  
+  ${chalk.gray('# Set custom quality threshold (default is 7)')}
+  $ git-rewrite-commits --min-quality-score 8
 
   ${chalk.gray('# With explicit API key')}
   $ git-rewrite-commits --api-key "sk-..."

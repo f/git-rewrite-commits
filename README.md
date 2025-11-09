@@ -10,11 +10,14 @@ Automatically rewrite your entire git commit history with better, conventional c
 ## 🎯 Features
 
 - **AI-Powered**: Uses OpenAI's GPT models to generate meaningful commit messages
+- **Smart Detection**: Automatically skips well-formed commits (can be disabled)
+- **Quality Scoring**: Assesses commit quality and only fixes broken messages
 - **Conventional Commits**: Follows conventional commit standards (feat, fix, docs, etc.)
 - **Safe**: Automatically creates backup branches before rewriting
 - **Flexible**: Supports dry-run mode to preview changes
 - **Customizable**: Choose your preferred AI model and processing options
 - **Progress Tracking**: Real-time progress indicators with colored output
+- **Efficient**: Process only the last N commits for faster operation
 
 ## 📦 Installation
 
@@ -65,15 +68,17 @@ npx git-rewrite-commits --api-key "sk-..."
 
 ```
 Options:
-  -V, --version            output the version number
-  -k, --api-key <key>      OpenAI API key (defaults to OPENAI_API_KEY env var)
-  -m, --model <model>      OpenAI model to use (default: "gpt-3.5-turbo")
-  -b, --branch <branch>    Branch to rewrite (defaults to current branch)
-  -d, --dry-run            Show what would be changed without modifying repository
-  -v, --verbose            Show detailed output
-  --max-commits <number>   Maximum number of commits to process
-  --skip-backup            Skip creating a backup branch (not recommended)
-  -h, --help               display help for command
+  -V, --version                 output the version number
+  -k, --api-key <key>           OpenAI API key (defaults to OPENAI_API_KEY env var)
+  -m, --model <model>           OpenAI model to use (default: "gpt-3.5-turbo")
+  -b, --branch <branch>         Branch to rewrite (defaults to current branch)
+  -d, --dry-run                 Show what would be changed without modifying repository
+  -v, --verbose                 Show detailed output
+  --max-commits <number>        Process only the last N commits
+  --skip-backup                 Skip creating a backup branch (not recommended)
+  --no-skip-well-formed         Process all commits, even well-formed ones
+  --min-quality-score <score>   Minimum quality score (1-10) to consider well-formed (default: 7)
+  -h, --help                    display help for command
 ```
 
 ### Examples
@@ -85,12 +90,30 @@ npx git-rewrite-commits --dry-run
 # Use GPT-4 for better quality messages
 npx git-rewrite-commits --model gpt-4
 
-# Process only the first 10 commits
+# Process only the last 10 commits (most recent)
 npx git-rewrite-commits --max-commits 10
+
+# Process ALL commits, including well-formed ones
+npx git-rewrite-commits --no-skip-well-formed
+
+# Set stricter quality threshold (8/10 instead of default 7/10)
+npx git-rewrite-commits --min-quality-score 8
 
 # Verbose mode for debugging
 npx git-rewrite-commits --verbose
 ```
+
+## 🧠 Smart Commit Detection
+
+The tool automatically assesses each commit message quality based on:
+
+- **Conventional format**: Following feat/fix/docs/etc. patterns (4 points)
+- **Appropriate length**: Between 10-72 characters (2 points)
+- **Descriptive content**: Not generic like "update" or "fix" (2 points)
+- **Present tense**: Following best practices (1 point)
+- **No trailing period**: Clean formatting (1 point)
+
+Messages scoring 7/10 or higher are considered well-formed and skipped by default. Use `--no-skip-well-formed` to process all commits or `--min-quality-score` to adjust the threshold.
 
 ## 🛡️ Safety Features
 
