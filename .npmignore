@@ -1,0 +1,64 @@
+# Source files
+src/
+*.ts
+!dist/**/*.d.ts
+
+# Config files
+tsconfig.json
+.eslintrc*
+.prettierrc*
+
+# Git and GitHub
+.git/
+.github/
+.gitignore
+
+# Development files
+*.log
+node_modules/
+coverage/
+.nyc_output/
+test/
+tests/
+__tests__/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Original script
+script.ts
+
+# Documentation source files
+docs/
+
+# CI/CD
+.travis.yml
+.circleci/
+.github/
+azure-pipelines.yml
+
+# Package manager files
+yarn.lock
+package-lock.json
+pnpm-lock.yaml
+
+# Build tools
+.babelrc
+webpack.config.js
+rollup.config.js
+
+# Environment files
+.env
+.env.*
+
+# Temporary files
+tmp/
+temp/
+*.tmp
