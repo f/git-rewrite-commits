@@ -16,6 +16,8 @@ export interface RewriteOptions {
   skipBackup?: boolean;
   skipWellFormed?: boolean;
   minQualityScore?: number;
+  template?: string;
+  language?: string;
 }
 
 export interface CommitInfo {
@@ -44,6 +46,7 @@ export class GitCommitRewriter {
       skipBackup: false,
       skipWellFormed: true,
       minQualityScore: 7,
+      language: 'en',
       ...options
     };
   }
@@ -68,6 +71,52 @@ export class GitCommitRewriter {
         resolve(answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes');
       });
     });
+  }
+
+  private parseTemplate(template: string): { prefix: string; separator: string; example: string } {
+    // Parse templates like "(feat): message" or "[JIRA-123] feat: message"
+    const match = template.match(/^(.*?)(\s*[:\-]\s*)(.*)$/);
+    if (match) {
+      return {
+        prefix: match[1],
+        separator: match[2],
+        example: match[3]
+      };
+    }
+    return {
+      prefix: '',
+      separator: ': ',
+      example: template
+    };
+  }
+
+  private getLanguageInstructions(language: string): string {
+    const languageMap: { [key: string]: string } = {
+      'en': 'English',
+      'es': 'Spanish',
+      'fr': 'French',
+      'de': 'German',
+      'it': 'Italian',
+      'pt': 'Portuguese',
+      'ru': 'Russian',
+      'ja': 'Japanese',
+      'ko': 'Korean',
+      'zh': 'Chinese',
+      'zh-cn': 'Simplified Chinese',
+      'zh-tw': 'Traditional Chinese',
+      'ar': 'Arabic',
+      'hi': 'Hindi',
+      'nl': 'Dutch',
+      'pl': 'Polish',
+      'tr': 'Turkish',
+      'sv': 'Swedish',
+      'da': 'Danish',
+      'no': 'Norwegian',
+      'fi': 'Finnish'
+    };
+    
+    const langName = languageMap[language.toLowerCase()] || language;
+    return `Write the commit message in ${langName}.`;
   }
 
   private assessCommitQuality(message: string): { score: number; isWellFormed: boolean; reason: string } {
@@ -132,7 +181,30 @@ export class GitCommitRewriter {
     oldMessage: string
   ): Promise<string> {
     try {
-      const prompt = `You are a git commit message generator. Analyze the following git diff and file changes, then generate a clear, concise commit message following conventional commit standards.
+      let formatInstructions = '';
+      
+      if (this.options.template) {
+        const parsed = this.parseTemplate(this.options.template);
+        if (parsed.prefix) {
+          // Template has specific format like "(feat)" or "[JIRA-123] feat"
+          formatInstructions = `Follow this EXACT format: ${this.options.template}
+Where the message part should describe what was changed.
+Example: If template is "(feat): message", generate something like "(feat): add user authentication"
+Example: If template is "[JIRA-XXX] type: message", generate something like "[JIRA-123] fix: resolve null pointer exception"`;
+        } else {
+          formatInstructions = `Use this format as a guide: ${this.options.template}`;
+        }
+      } else {
+        formatInstructions = `1. Follows the format: <type>(<scope>): <subject>
+2. Types can be: feat, fix, docs, style, refactor, test, chore, perf, ci, build, revert
+3. Scope is optional but recommended (e.g., auth, api, ui)`;
+      }
+
+      const languageInstruction = this.options.language && this.options.language !== 'en' 
+        ? this.getLanguageInstructions(this.options.language)
+        : 'Write the commit message in English.';
+
+      const prompt = `You are a git commit message generator. Analyze the following git diff and file changes, then generate a clear, concise commit message.
 
 Old commit message: "${oldMessage}"
 
@@ -143,17 +215,16 @@ Git diff (truncated if too long):
 ${diff.substring(0, 8000)}
 
 Generate a commit message that:
-1. Follows the format: <type>(<scope>): <subject>
-2. Types can be: feat, fix, docs, style, refactor, test, chore, perf, ci, build, revert
-3. Scope is optional but recommended (e.g., auth, api, ui)
+${formatInstructions}
 4. Subject should be clear and descriptive
 5. Be concise but informative
 6. Focus on WHAT was changed and WHY, not HOW
 7. Use present tense ("add" not "added")
 8. Don't end with a period
 9. Maximum 72 characters for the first line
+10. ${languageInstruction}
 
-Return ONLY the commit message, nothing else.`;
+Return ONLY the commit message, nothing else. No explanations, just the message.`;
 
       const response = await this.openai.chat.completions.create({
         model: this.options.model || 'gpt-3.5-turbo',
