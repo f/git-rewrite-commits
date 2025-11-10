@@ -1,11 +1,10 @@
 # $ npx git-rewrite-commits
 
-> AI-powered git commit message rewriter using GPT
+> AI-powered git commit message rewriter using AI
 
 ![](./git-rewrite-commits.png)
 
 [![npm version](https://img.shields.io/npm/v/git-rewrite-commits.svg)](https://www.npmjs.com/package/git-rewrite-commits)
-[![GitHub Package](https://img.shields.io/badge/GitHub%20Package-latest-green)](https://github.com/f/git-rewrite-commits/packages)
 [![Documentation](https://img.shields.io/badge/docs-live-blue)](https://f.github.io/git-rewrite-commits/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -31,7 +30,8 @@ Automatically rewrite your entire git commit history with better, conventional c
 
 ## Features
 
-- **AI-Powered**: Uses OpenAI's GPT models to generate meaningful commit messages
+- **AI-Powered**: Uses OpenAI GPT or local models via Ollama to generate meaningful commit messages
+- **Local AI Support**: Run completely offline with Ollama and local models
 - **One-Command Hook Setup**: Install git hooks instantly with `npx git-rewrite-commits --install-hooks`
 - **Smart Detection**: Automatically skips well-formed commits (can be disabled)
 - **Quality Scoring**: Assesses commit quality and only fixes broken messages
@@ -55,19 +55,8 @@ npx git-rewrite-commits
 
 Or install it globally:
 
-### From npm Registry
 ```bash
 npm install -g git-rewrite-commits
-```
-
-### From GitHub Packages
-```bash
-npm install -g @f/git-rewrite-commits --registry https://npm.pkg.github.com
-```
-
-**Note:** For GitHub Packages, you'll need to authenticate first:
-```bash
-npm login --registry=https://npm.pkg.github.com --scope=@f
 ```
 
 ## Quick Hook Installation
@@ -195,9 +184,18 @@ git push --force-with-lease origin main
 
 ### Option 1: Enable AI Commits Automatically (Recommended)
 
-1. **Set up your OpenAI API key:**
+1. **Set up your AI provider:**
+
+   **For OpenAI (Cloud-based):**
    ```bash
    export OPENAI_API_KEY="your-api-key-here"
+   ```
+   
+   **For Ollama (Local models):**
+   ```bash
+   # Install Ollama from https://ollama.ai
+   ollama pull llama3.2  # Download the model
+   ollama serve         # Start Ollama server
    ```
 
 2. **Install git hooks in your repository:**
@@ -214,7 +212,7 @@ git push --force-with-lease origin main
 
 ### Option 2: Rewrite Existing History
 
-1. **Set up your OpenAI API key** (same as above)
+1. **Set up your AI provider** (same as above)
 
 2. **Navigate to your git repository:**
    ```bash
@@ -232,10 +230,13 @@ git push --force-with-lease origin main
 ### Basic Usage
 
 ```bash
-# Use with environment variable OPENAI_API_KEY
+# Use with OpenAI (requires OPENAI_API_KEY env var)
 npx git-rewrite-commits
 
-# Or provide API key directly
+# Use with Ollama (local models)
+npx git-rewrite-commits --provider ollama
+
+# Or provide API key directly (OpenAI)
 npx git-rewrite-commits --api-key "sk-..."
 ```
 
@@ -244,8 +245,10 @@ npx git-rewrite-commits --api-key "sk-..."
 ```
 Options:
   -V, --version                 output the version number
+  --provider <provider>         AI provider to use: "openai" or "ollama" (default: "openai")
   -k, --api-key <key>           OpenAI API key (defaults to OPENAI_API_KEY env var)
-  -m, --model <model>           OpenAI model to use (default: "gpt-3.5-turbo")
+  -m, --model <model>           AI model to use (default: gpt-3.5-turbo for OpenAI, llama3.2 for Ollama)
+  --ollama-url <url>            Ollama server URL (default: "http://localhost:11434")
   -b, --branch <branch>         Branch to rewrite (defaults to current branch)
   -d, --dry-run                 Show what would be changed without modifying repository
   -v, --verbose                 Show detailed output
@@ -267,8 +270,13 @@ Options:
 # Preview changes without modifying history (recommended first step)
 npx git-rewrite-commits --dry-run
 
-# Use GPT-4 for better quality messages
+# Use GPT-4 for better quality messages (OpenAI)
 npx git-rewrite-commits --model gpt-4
+
+# Use local models with Ollama
+npx git-rewrite-commits --provider ollama
+npx git-rewrite-commits --provider ollama --model mistral
+npx git-rewrite-commits --provider ollama --model codellama
 
 # Process only the last 10 commits (most recent)
 npx git-rewrite-commits --max-commits 10
