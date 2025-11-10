@@ -222,7 +222,8 @@ ${formatInstructions}
 7. Use present tense ("add" not "added")
 8. Don't end with a period
 9. Maximum 72 characters for the first line
-10. ${languageInstruction}
+10. Lowercase the first letter
+11. ${languageInstruction}
 
 Return ONLY the commit message, nothing else. No explanations, just the message.`;
 
