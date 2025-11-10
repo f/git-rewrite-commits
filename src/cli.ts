@@ -5,10 +5,107 @@ import chalk from 'chalk';
 import { GitCommitRewriter } from './index';
 import * as fs from 'fs';
 import * as path from 'path';
+import { execSync } from 'child_process';
 
 const packageJson = JSON.parse(
   fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8')
 );
+
+async function installGitHooks(): Promise<void> {
+  console.log(chalk.cyan.bold('\n🔧 Installing Git Hooks\n'));
+
+  // Check if in a git repository
+  try {
+    execSync('git rev-parse --git-dir', { stdio: 'ignore' });
+  } catch {
+    console.error(chalk.red('❌ Error: Not a git repository!'));
+    console.error(chalk.yellow('Please run this command from within a git repository.'));
+    process.exit(1);
+  }
+
+  // Get hooks directory paths
+  const gitHooksDir = path.join(process.cwd(), '.git', 'hooks');
+  const sourceHooksDir = path.join(__dirname, '..', 'hooks');
+  
+  // Create hooks directory if it doesn't exist
+  if (!fs.existsSync(gitHooksDir)) {
+    fs.mkdirSync(gitHooksDir, { recursive: true });
+  }
+
+  // Define available hooks
+  const hooks = [
+    { name: 'prepare-commit-msg', description: 'AI-powered commit message generation' },
+    { name: 'post-commit', description: 'Automatic commit message improvement' },
+    { name: 'pre-push', description: 'Review and fix before pushing' }
+  ];
+
+  console.log(chalk.blue('Available hooks:\n'));
+  hooks.forEach((hook, i) => {
+    console.log(`  ${i + 1}. ${chalk.bold(hook.name)} - ${hook.description}`);
+  });
+
+  // Install hooks
+  console.log(chalk.yellow('\nInstalling hooks...'));
+  let installedCount = 0;
+  let skippedCount = 0;
+
+  for (const hook of hooks) {
+    const sourcePath = path.join(sourceHooksDir, hook.name);
+    const targetPath = path.join(gitHooksDir, hook.name);
+
+    // Skip README file
+    if (hook.name === 'README.md') continue;
+
+    // Check if source file exists
+    if (!fs.existsSync(sourcePath)) {
+      console.log(chalk.red(`  ✗ ${hook.name} - source not found`));
+      continue;
+    }
+
+    // Check if hook already exists
+    if (fs.existsSync(targetPath)) {
+      console.log(chalk.yellow(`  ⚠ ${hook.name} - already exists (skipped)`));
+      skippedCount++;
+      continue;
+    }
+
+    // Copy hook file
+    try {
+      const content = fs.readFileSync(sourcePath, 'utf-8');
+      fs.writeFileSync(targetPath, content);
+      fs.chmodSync(targetPath, 0o755); // Make executable
+      console.log(chalk.green(`  ✓ ${hook.name} - installed`));
+      installedCount++;
+    } catch (error: any) {
+      console.log(chalk.red(`  ✗ ${hook.name} - installation failed: ${error.message}`));
+    }
+  }
+
+  // Summary
+  console.log(chalk.cyan('\n📊 Summary:'));
+  console.log(chalk.green(`  ✓ Installed: ${installedCount} hook(s)`));
+  if (skippedCount > 0) {
+    console.log(chalk.yellow(`  ⚠ Skipped: ${skippedCount} hook(s) (already exist)`));
+  }
+
+  // Configuration instructions
+  if (installedCount > 0) {
+    console.log(chalk.blue('\n💡 Next steps:'));
+    console.log('  1. Set your OpenAI API key:');
+    console.log(chalk.gray('     export OPENAI_API_KEY="your-api-key"'));
+    console.log('\n  2. Optional: Configure template and language:');
+    console.log(chalk.gray('     git config hooks.commitTemplate "(feat): message"'));
+    console.log(chalk.gray('     git config hooks.commitLanguage "en"'));
+    console.log('\n  3. Start committing! The hooks will work automatically.');
+    
+    if (installedCount === hooks.length) {
+      console.log(chalk.green('\n✨ All hooks installed successfully!'));
+    }
+  } else if (skippedCount === hooks.length) {
+    console.log(chalk.yellow('\n⚠️  All hooks already installed. No changes made.'));
+    console.log(chalk.gray('To reinstall, remove existing hooks from .git/hooks/ first.'));
+  }
+}
 
 const program = new Command();
 
@@ -27,8 +124,16 @@ program
   .option('--min-quality-score <score>', 'Minimum quality score (1-10) to consider well-formed', parseFloat)
   .option('-t, --template <format>', 'Custom commit message template (e.g., "(feat): message" or "[JIRA-XXX] type: message")')
   .option('-l, --language <lang>', 'Language for commit messages (default: "en")', 'en')
+  .option('--staged', 'Generate a message for staged changes (for git hooks)')
+  .option('--install-hooks', 'Install git hooks to the current repository')
   .action(async (options) => {
     try {
+      // Handle --install-hooks option
+      if (options.installHooks) {
+        await installGitHooks();
+        process.exit(0);
+      }
+
       // Check for API key
       const apiKey = options.apiKey || process.env.OPENAI_API_KEY;
       if (!apiKey) {
@@ -54,7 +159,13 @@ program
         language: options.language,
       });
 
-      await rewriter.rewrite();
+      if (options.staged) {
+        // Generate message for staged changes
+        const message = await rewriter.generateForStaged();
+        console.log(message);
+      } else {
+        await rewriter.rewrite();
+      }
     } catch (error: any) {
       console.error(chalk.red(`\n❌ Error: ${error.message}`));
       if (options.verbose && error.stack) {
@@ -84,6 +195,23 @@ ${chalk.bold('Examples:')}
   
   ${chalk.gray('# Set custom quality threshold (default is 7)')}
   $ git-rewrite-commits --min-quality-score 8
+
+  ${chalk.gray('# Use a custom template format')}
+  $ git-rewrite-commits --template "(feat): message"
+  $ git-rewrite-commits --template "[JIRA-123] feat: message"
+  $ git-rewrite-commits --template "🔧 fix: message"
+
+  ${chalk.gray('# Generate messages in another language')}
+  $ git-rewrite-commits --language es  ${chalk.gray('# Spanish')}
+  $ git-rewrite-commits --language zh  ${chalk.gray('# Chinese')}
+  $ git-rewrite-commits --language ja  ${chalk.gray('# Japanese')}
+
+  ${chalk.gray('# Generate message for staged changes (for git hooks)')}
+  $ git-rewrite-commits --staged
+  $ git-rewrite-commits --staged --template "[JIRA-123] feat: message"
+
+  ${chalk.gray('# Install git hooks to your repository')}
+  $ git-rewrite-commits --install-hooks
 
   ${chalk.gray('# With explicit API key')}
   $ git-rewrite-commits --api-key "sk-..."
