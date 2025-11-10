@@ -1,4 +1,4 @@
-# npx git-rewrite-commits
+# $ npx git-rewrite-commits
 
 > AI-powered git commit message rewriter using GPT
 
