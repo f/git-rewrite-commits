@@ -488,7 +488,7 @@ process.stdin.on('end', () => {
         if (newMessage !== commitInfo.message) {
           messageMap[hash] = newMessage;
           improvedCount++;
-          spinner.succeed(chalk.green(`[${progress}%] ${hash.substring(0, 8)}: ✨ Improved to: "${newMessage}"`));
+          spinner.succeed(chalk.green(`[${progress}%] ${hash.substring(0, 8)}: ✨ "${commitInfo.message}" → "${newMessage}"`));
         } else {
           spinner.info(chalk.yellow(`[${progress}%] ${hash.substring(0, 8)}: Keeping original message`));
         }
