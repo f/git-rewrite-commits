@@ -111,10 +111,12 @@ const program = new Command();
 
 program
   .name('git-rewrite-commits')
-  .description('AI-powered git commit message rewriter using OpenAI')
+  .description('AI-powered git commit message rewriter using OpenAI or Google Gemini')
   .version(packageJson.version)
   .option('-k, --api-key <key>', 'OpenAI API key (defaults to OPENAI_API_KEY env var)')
-  .option('-m, --model <model>', 'OpenAI model to use', 'gpt-3.5-turbo')
+  .option('--gemini-api-key <key>', 'Gemini API key (defaults to GEMINI_API_KEY env var)')
+  .option('--provider <provider>', 'AI provider to use: "openai" or "gemini" (default: "openai")', 'openai')
+  .option('-m, --model <model>', 'AI model to use (default: gpt-3.5-turbo for OpenAI, gemini-1.5-flash for Gemini)')
   .option('-b, --branch <branch>', 'Branch to rewrite (defaults to current branch)')
   .option('-d, --dry-run', 'Show what would be changed without modifying repository')
   .option('-v, --verbose', 'Show detailed output')
@@ -135,19 +137,35 @@ program
         process.exit(0);
       }
 
-      // Check for API key
-      const apiKey = options.apiKey || process.env.OPENAI_API_KEY;
-      if (!apiKey) {
-        console.error(chalk.red('\n❌ Error: OpenAI API key is required!'));
-        console.error(chalk.yellow('\nPlease provide it using one of these methods:'));
-        console.error(chalk.cyan('  1. Set environment variable: export OPENAI_API_KEY="your-api-key"'));
-        console.error(chalk.cyan('  2. Pass as argument: git-rewrite-commits --api-key "your-api-key"'));
-        console.error(chalk.dim('\nGet your API key at: https://platform.openai.com/api-keys'));
-        process.exit(1);
+      // Check for API key based on provider
+      const provider = options.provider || 'openai';
+
+      if (provider === 'openai') {
+        const apiKey = options.apiKey || process.env.OPENAI_API_KEY;
+        if (!apiKey) {
+          console.error(chalk.red('\n❌ Error: OpenAI API key is required!'));
+          console.error(chalk.yellow('\nPlease provide it using one of these methods:'));
+          console.error(chalk.cyan('  1. Set environment variable: export OPENAI_API_KEY="your-api-key"'));
+          console.error(chalk.cyan('  2. Pass as argument: git-rewrite-commits --api-key "your-api-key"'));
+          console.error(chalk.dim('\nGet your API key at: https://platform.openai.com/api-keys'));
+          process.exit(1);
+        }
+      } else if (provider === 'gemini') {
+        const geminiApiKey = options.geminiApiKey || process.env.GEMINI_API_KEY;
+        if (!geminiApiKey) {
+          console.error(chalk.red('\n❌ Error: Gemini API key is required!'));
+          console.error(chalk.yellow('\nPlease provide it using one of these methods:'));
+          console.error(chalk.cyan('  1. Set environment variable: export GEMINI_API_KEY="your-api-key"'));
+          console.error(chalk.cyan('  2. Pass as argument: git-rewrite-commits --gemini-api-key "your-api-key"'));
+          console.error(chalk.dim('\nGet your API key at: https://aistudio.google.com/app/apikey'));
+          process.exit(1);
+        }
       }
 
       const rewriter = new GitCommitRewriter({
-        apiKey,
+        apiKey: options.apiKey,
+        geminiApiKey: options.geminiApiKey,
+        provider: provider as 'openai' | 'gemini',
         model: options.model,
         branch: options.branch,
         dryRun: options.dryRun,
@@ -180,21 +198,26 @@ program
 // Add examples
 program.addHelpText('after', `
 ${chalk.bold('Examples:')}
-  ${chalk.gray('# Basic usage (uses OPENAI_API_KEY env var)')}
+  ${chalk.gray('# Basic usage with OpenAI (uses OPENAI_API_KEY env var)')}
   $ git-rewrite-commits
+
+  ${chalk.gray('# Use Google Gemini instead of OpenAI')}
+  $ git-rewrite-commits --provider gemini
+  $ git-rewrite-commits --provider gemini --model gemini-1.5-pro
 
   ${chalk.gray('# Dry run to preview changes')}
   $ git-rewrite-commits --dry-run
 
   ${chalk.gray('# Use a different model')}
   $ git-rewrite-commits --model gpt-4
+  $ git-rewrite-commits --provider gemini --model gemini-1.5-flash
 
   ${chalk.gray('# Process only the last 10 commits')}
   $ git-rewrite-commits --max-commits 10
-  
+
   ${chalk.gray('# Process all commits, including well-formed ones')}
   $ git-rewrite-commits --no-skip-well-formed
-  
+
   ${chalk.gray('# Set custom quality threshold (default is 7)')}
   $ git-rewrite-commits --min-quality-score 8
 
@@ -222,9 +245,20 @@ ${chalk.bold('Examples:')}
 
   ${chalk.gray('# With explicit API key')}
   $ git-rewrite-commits --api-key "sk-..."
+  $ git-rewrite-commits --provider gemini --gemini-api-key "your-key"
 
 ${chalk.bold('Environment Variables:')}
-  OPENAI_API_KEY    Your OpenAI API key
+  OPENAI_API_KEY    Your OpenAI API key (for OpenAI provider)
+  GEMINI_API_KEY    Your Google Gemini API key (for Gemini provider)
+
+${chalk.bold('AI Providers:')}
+  ${chalk.cyan('OpenAI')} (default)
+    - Models: gpt-3.5-turbo (default), gpt-4, gpt-4o
+    - Get API key: https://platform.openai.com/api-keys
+
+  ${chalk.cyan('Google Gemini')}
+    - Models: gemini-1.5-flash (default), gemini-1.5-pro, gemini-pro
+    - Get API key: https://aistudio.google.com/app/apikey
 
 ${chalk.bold('Important Notes:')}
   ${chalk.yellow('⚠️  This tool rewrites git history!')}

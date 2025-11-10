@@ -1,6 +1,6 @@
 # $ npx git-rewrite-commits
 
-> AI-powered git commit message rewriter using GPT
+> AI-powered git commit message rewriter using OpenAI GPT or Google Gemini
 
 ![](./git-rewrite-commits.png)
 
@@ -31,7 +31,8 @@ Automatically rewrite your entire git commit history with better, conventional c
 
 ## Features
 
-- **AI-Powered**: Uses OpenAI's GPT models to generate meaningful commit messages
+- **AI-Powered**: Uses OpenAI GPT or Google Gemini models to generate meaningful commit messages
+- **Multiple AI Providers**: Choose between OpenAI (GPT-3.5, GPT-4) or Google Gemini (Gemini 1.5 Flash/Pro)
 - **One-Command Hook Setup**: Install git hooks instantly with `npx git-rewrite-commits --install-hooks`
 - **Smart Detection**: Automatically skips well-formed commits (can be disabled)
 - **Quality Scoring**: Assesses commit quality and only fixes broken messages
@@ -195,9 +196,16 @@ git push --force-with-lease origin main
 
 ### Option 1: Enable AI Commits Automatically (Recommended)
 
-1. **Set up your OpenAI API key:**
+1. **Set up your AI provider API key:**
+
+   **For OpenAI (default):**
    ```bash
    export OPENAI_API_KEY="your-api-key-here"
+   ```
+
+   **For Google Gemini:**
+   ```bash
+   export GEMINI_API_KEY="your-api-key-here"
    ```
 
 2. **Install git hooks in your repository:**
@@ -214,7 +222,7 @@ git push --force-with-lease origin main
 
 ### Option 2: Rewrite Existing History
 
-1. **Set up your OpenAI API key** (same as above)
+1. **Set up your AI provider API key** (same as above)
 
 2. **Navigate to your git repository:**
    ```bash
@@ -223,8 +231,13 @@ git push --force-with-lease origin main
 
 3. **Run the tool:**
    ```bash
+   # Using OpenAI (default)
    npx git-rewrite-commits  # Rewrites all commits
    npx git-rewrite-commits --max-commits 10  # Only last 10
+
+   # Using Google Gemini
+   npx git-rewrite-commits --provider gemini
+   npx git-rewrite-commits --provider gemini --model gemini-1.5-pro
    ```
 
 ## Usage
@@ -232,11 +245,17 @@ git push --force-with-lease origin main
 ### Basic Usage
 
 ```bash
-# Use with environment variable OPENAI_API_KEY
+# Use with environment variable OPENAI_API_KEY (default provider)
 npx git-rewrite-commits
 
 # Or provide API key directly
 npx git-rewrite-commits --api-key "sk-..."
+
+# Use Google Gemini instead
+npx git-rewrite-commits --provider gemini
+
+# Or with explicit Gemini API key
+npx git-rewrite-commits --provider gemini --gemini-api-key "your-key"
 ```
 
 ### Options
@@ -245,7 +264,9 @@ npx git-rewrite-commits --api-key "sk-..."
 Options:
   -V, --version                 output the version number
   -k, --api-key <key>           OpenAI API key (defaults to OPENAI_API_KEY env var)
-  -m, --model <model>           OpenAI model to use (default: "gpt-3.5-turbo")
+  --gemini-api-key <key>        Gemini API key (defaults to GEMINI_API_KEY env var)
+  --provider <provider>         AI provider: "openai" or "gemini" (default: "openai")
+  -m, --model <model>           AI model to use (default: gpt-3.5-turbo for OpenAI, gemini-1.5-flash for Gemini)
   -b, --branch <branch>         Branch to rewrite (defaults to current branch)
   -d, --dry-run                 Show what would be changed without modifying repository
   -v, --verbose                 Show detailed output
@@ -267,8 +288,11 @@ Options:
 # Preview changes without modifying history (recommended first step)
 npx git-rewrite-commits --dry-run
 
-# Use GPT-4 for better quality messages
+# Use GPT-4 for better quality messages (OpenAI)
 npx git-rewrite-commits --model gpt-4
+
+# Use Gemini 1.5 Pro (Google)
+npx git-rewrite-commits --provider gemini --model gemini-1.5-pro
 
 # Process only the last 10 commits (most recent)
 npx git-rewrite-commits --max-commits 10
@@ -425,12 +449,22 @@ The tool generates commit messages following these conventional types:
 
 ### Environment Variables
 
-- `OPENAI_API_KEY`: Your OpenAI API key (required)
+- `OPENAI_API_KEY`: Your OpenAI API key (for OpenAI provider)
+- `GEMINI_API_KEY`: Your Google Gemini API key (for Gemini provider)
 
-### Supported Models
+### Supported AI Providers & Models
 
+**OpenAI** (default provider):
 - `gpt-3.5-turbo` (default) - Fast and cost-effective
+- `gpt-4` - More capable, higher quality
 - `gpt-4o` - Latest GPT model
+- Get API key at: https://platform.openai.com/api-keys
+
+**Google Gemini**:
+- `gemini-1.5-flash` (default) - Fast and efficient
+- `gemini-1.5-pro` - More capable, higher quality
+- `gemini-pro` - Previous generation model
+- Get API key at: https://aistudio.google.com/app/apikey
 
 ## Development
 

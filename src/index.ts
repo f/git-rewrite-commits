@@ -2,6 +2,7 @@ import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import * as readline from 'readline';
 import chalk from 'chalk';
 import ora from 'ora';
@@ -19,6 +20,8 @@ export interface RewriteOptions {
   template?: string;
   language?: string;
   prompt?: string;
+  provider?: 'openai' | 'gemini';
+  geminiApiKey?: string;
 }
 
 export interface CommitInfo {
@@ -29,19 +32,35 @@ export interface CommitInfo {
 }
 
 export class GitCommitRewriter {
-  private openai: OpenAI;
+  private openai?: OpenAI;
+  private gemini?: GoogleGenerativeAI;
   private options: RewriteOptions;
 
   constructor(options: RewriteOptions = {}) {
-    const apiKey = options.apiKey || process.env.OPENAI_API_KEY;
-    
-    if (!apiKey) {
-      throw new Error('OpenAI API key is required. Set OPENAI_API_KEY environment variable or pass it as an option.');
+    // Determine provider
+    const provider = options.provider || 'openai';
+
+    if (provider === 'openai') {
+      const apiKey = options.apiKey || process.env.OPENAI_API_KEY;
+
+      if (!apiKey) {
+        throw new Error('OpenAI API key is required. Set OPENAI_API_KEY environment variable or pass it as an option.');
+      }
+
+      this.openai = new OpenAI({ apiKey });
+    } else if (provider === 'gemini') {
+      const geminiApiKey = options.geminiApiKey || process.env.GEMINI_API_KEY;
+
+      if (!geminiApiKey) {
+        throw new Error('Gemini API key is required. Set GEMINI_API_KEY environment variable or pass it as an option.');
+      }
+
+      this.gemini = new GoogleGenerativeAI(geminiApiKey);
     }
 
-    this.openai = new OpenAI({ apiKey });
     this.options = {
-      model: 'gpt-3.5-turbo',
+      model: provider === 'openai' ? 'gpt-3.5-turbo' : 'gemini-1.5-flash',
+      provider: provider,
       dryRun: false,
       verbose: false,
       skipBackup: false,
@@ -176,14 +195,118 @@ export class GitCommitRewriter {
     return { score, isWellFormed, reason };
   }
 
-  private async generateCommitMessage(
+  private async generateCommitMessageWithGemini(
     diff: string,
     files: string[],
     oldMessage: string
   ): Promise<string> {
     try {
+      if (!this.gemini) {
+        throw new Error('Gemini client not initialized');
+      }
+
       let formatInstructions = '';
-      
+
+      if (this.options.template) {
+        const parsed = this.parseTemplate(this.options.template);
+        if (parsed.prefix) {
+          formatInstructions = `Follow this EXACT format: ${this.options.template}
+Where the message part should describe what was changed.
+Example: If template is "(feat): message", generate something like "(feat): add user authentication"
+Example: If template is "[JIRA-XXX] type: message", generate something like "[JIRA-123] fix: resolve null pointer exception"`;
+        } else {
+          formatInstructions = `Use this format as a guide: ${this.options.template}`;
+        }
+      } else {
+        formatInstructions = `1. Follows the format: <type>(<scope>): <subject>
+2. Types can be: feat, fix, docs, style, refactor, test, chore, perf, ci, build, revert
+3. Scope is optional but recommended (e.g., auth, api, ui)
+4. All should be in lowercase`;
+      }
+
+      const languageInstruction = this.options.language && this.options.language !== 'en'
+        ? this.getLanguageInstructions(this.options.language)
+        : 'Write the commit message in English.';
+
+      let prompt: string;
+
+      if (this.options.prompt) {
+        prompt = `You are a git commit message generator. Analyze the following git diff and file changes, then ${this.options.prompt}
+
+Old commit message: "${oldMessage}"
+
+Files changed:
+${files.join('\n')}
+
+Git diff (truncated if too long):
+${diff.substring(0, 8000)}
+
+${this.options.template ? `Format: ${this.options.template}` : ''}
+${languageInstruction}
+
+Return ONLY the commit message, nothing else.`;
+      } else {
+        prompt = `You are a git commit message generator. Analyze the following git diff and file changes, then generate a clear, concise commit message.
+
+Old commit message: "${oldMessage}"
+
+Files changed:
+${files.join('\n')}
+
+Git diff (truncated if too long):
+${diff.substring(0, 8000)}
+
+Generate a commit message that:
+${formatInstructions}
+4. Subject should be clear and descriptive
+5. Be concise but informative
+6. Focus on WHAT was changed and WHY, not HOW
+7. Use present tense ("add" not "added")
+8. Don't end with a period
+9. Maximum 72 characters for the first line
+10. Lowercase the first letter
+11. ${languageInstruction}
+
+Return ONLY the commit message, nothing else. No explanations, just the message.`;
+      }
+
+      const model = this.gemini.getGenerativeModel({
+        model: this.options.model || 'gemini-1.5-flash'
+      });
+
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const message = response.text().trim();
+
+      if (!message) {
+        throw new Error('No commit message generated');
+      }
+
+      return message;
+    } catch (error: any) {
+      if (this.options.verbose) {
+        console.error(chalk.red(`Error generating commit message: ${error.message}`));
+      }
+      return oldMessage;
+    }
+  }
+
+  private async generateCommitMessage(
+    diff: string,
+    files: string[],
+    oldMessage: string
+  ): Promise<string> {
+    if (this.options.provider === 'gemini') {
+      return this.generateCommitMessageWithGemini(diff, files, oldMessage);
+    }
+
+    try {
+      if (!this.openai) {
+        throw new Error('OpenAI client not initialized');
+      }
+
+      let formatInstructions = '';
+
       if (this.options.template) {
         const parsed = this.parseTemplate(this.options.template);
         if (parsed.prefix) {
@@ -202,13 +325,13 @@ Example: If template is "[JIRA-XXX] type: message", generate something like "[JI
 4. All should be in lowercase`;
       }
 
-      const languageInstruction = this.options.language && this.options.language !== 'en' 
+      const languageInstruction = this.options.language && this.options.language !== 'en'
         ? this.getLanguageInstructions(this.options.language)
         : 'Write the commit message in English.';
 
       // Allow custom prompt to override default instructions
       let prompt: string;
-      
+
       if (this.options.prompt) {
         // User provided custom prompt - use it with basic context
         prompt = `You are a git commit message generator. Analyze the following git diff and file changes, then ${this.options.prompt}
