@@ -67,6 +67,8 @@ That's it! Now you get:
 - ✨ **Post-commit improvement** after each commit
 - 🚀 **Pre-push review** before pushing to remote
 
+> 📚 **See [QUICK_START.md](QUICK_START.md) for detailed setup guide**
+
 ### Configure (Optional)
 
 ```bash
