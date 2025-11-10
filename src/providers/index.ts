@@ -1,0 +1,21 @@
+import { AIProvider, ProviderOptions } from './types';
+import { OpenAIProvider } from './openai';
+import { OllamaProvider } from './ollama';
+
+export { AIProvider } from './types';
+export { OpenAIProvider } from './openai';
+export { OllamaProvider } from './ollama';
+
+export function createProvider(options: ProviderOptions): AIProvider {
+  const providerType = options.provider || 'openai';
+  
+  if (providerType === 'ollama') {
+    return new OllamaProvider(options.model || 'llama3.2', options.ollamaUrl);
+  } else {
+    const apiKey = options.apiKey || process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new Error('OpenAI API key is required. Set OPENAI_API_KEY environment variable or pass it as an option.');
+    }
+    return new OpenAIProvider(apiKey, options.model || 'gpt-3.5-turbo');
+  }
+}

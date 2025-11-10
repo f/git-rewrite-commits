@@ -57,9 +57,21 @@ chmod +x .git/hooks/prepare-commit-msg
    # or use npx (no installation needed)
    ```
 
-2. **Set your OpenAI API key:**
+2. **Set up your AI provider:**
+   
+   **For OpenAI:**
    ```bash
    export OPENAI_API_KEY="your-api-key-here"
+   ```
+   
+   **For Ollama (local models):**
+   ```bash
+   # Install Ollama from https://ollama.ai
+   ollama pull llama3.2  # Download the model
+   ollama serve         # Start Ollama server
+   
+   # Configure git to use Ollama
+   git config hooks.commitProvider ollama
    ```
 
 3. **Install the hooks you want:**
@@ -77,22 +89,25 @@ chmod +x .git/hooks/prepare-commit-msg
 
 ### prepare-commit-msg Hook Configuration
 
-You can configure the template and language for generated messages:
+You can configure the provider, template and language for generated messages:
 
 **Via Environment Variables:**
 ```bash
+export GIT_COMMIT_PROVIDER="ollama"  # or "openai"
 export GIT_COMMIT_TEMPLATE="[JIRA-XXX] feat: message"
 export GIT_COMMIT_LANGUAGE="es"
 ```
 
 **Via Git Config (per repository):**
 ```bash
+git config hooks.commitProvider "ollama"  # or "openai"
 git config hooks.commitTemplate "[JIRA-XXX] feat: message"
 git config hooks.commitLanguage "es"
 ```
 
 **Via Git Config (global):**
 ```bash
+git config --global hooks.commitProvider "openai"
 git config --global hooks.commitTemplate "feat(scope): message"
 git config --global hooks.commitLanguage "en"
 ```

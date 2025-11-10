@@ -1,14 +1,16 @@
 import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import OpenAI from 'openai';
 import * as readline from 'readline';
 import chalk from 'chalk';
 import ora from 'ora';
+import { AIProvider, createProvider } from './providers';
 
 export interface RewriteOptions {
+  provider?: 'openai' | 'ollama';
   apiKey?: string;
   model?: string;
+  ollamaUrl?: string;
   branch?: string;
   dryRun?: boolean;
   verbose?: boolean;
@@ -29,19 +31,30 @@ export interface CommitInfo {
 }
 
 export class GitCommitRewriter {
-  private openai: OpenAI;
+  private provider: AIProvider;
   private options: RewriteOptions;
 
   constructor(options: RewriteOptions = {}) {
-    const apiKey = options.apiKey || process.env.OPENAI_API_KEY;
+    const provider = options.provider || 'openai';
     
-    if (!apiKey) {
-      throw new Error('OpenAI API key is required. Set OPENAI_API_KEY environment variable or pass it as an option.');
+    // Check for API key if using OpenAI
+    if (provider === 'openai') {
+      const apiKey = options.apiKey || process.env.OPENAI_API_KEY;
+      if (!apiKey) {
+        throw new Error('OpenAI API key is required. Set OPENAI_API_KEY environment variable or pass it as an option.');
+      }
     }
 
-    this.openai = new OpenAI({ apiKey });
+    this.provider = createProvider({
+      provider: provider,
+      apiKey: options.apiKey,
+      model: options.model || (provider === 'ollama' ? 'llama3.2' : 'gpt-3.5-turbo'),
+      ollamaUrl: options.ollamaUrl
+    });
+    
     this.options = {
-      model: 'gpt-3.5-turbo',
+      provider: provider,
+      model: options.model || (provider === 'ollama' ? 'llama3.2' : 'gpt-3.5-turbo'),
       dryRun: false,
       verbose: false,
       skipBackup: false,
@@ -251,27 +264,8 @@ ${formatInstructions}
 Return ONLY the commit message, nothing else. No explanations, just the message.`;
       }
 
-      const response = await this.openai.chat.completions.create({
-        model: this.options.model || 'gpt-3.5-turbo',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a helpful assistant that generates clear, conventional git commit messages.',
-          },
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        temperature: 0.3,
-        max_tokens: 200,
-      });
-
-      const message = response.choices[0]?.message?.content?.trim();
-      if (!message) {
-        throw new Error('No commit message generated');
-      }
-
+      const systemPrompt = 'You are a helpful assistant that generates clear, conventional git commit messages.';
+      const message = await this.provider.generateCommitMessage(prompt, systemPrompt);
       return message;
     } catch (error: any) {
       if (this.options.verbose) {
