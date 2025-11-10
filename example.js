@@ -14,6 +14,7 @@ async function main() {
     minQualityScore: 7, // Minimum quality score to consider well-formed
     template: '(feat): message', // Optional: custom format template
     language: 'en', // Optional: language for messages (default: 'en')
+    prompt: 'Be concise and technical', // Optional: custom AI instructions
   });
 
   try {

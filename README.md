@@ -32,6 +32,7 @@ Automatically rewrite your entire git commit history with better, conventional c
 - **Smart Detection**: Automatically skips well-formed commits (can be disabled)
 - **Quality Scoring**: Assesses commit quality and only fixes broken messages
 - **Custom Templates**: Define your own commit format with `--template`
+- **Custom Prompts**: Override AI behavior with `--prompt` for unique styles
 - **Multi-language**: Generate messages in 20+ languages
 - **Conventional Commits**: Follows conventional commit standards (feat, fix, docs, etc.)
 - **Safe**: Automatically creates backup branches before rewriting
@@ -239,6 +240,7 @@ Options:
   --min-quality-score <score>   Minimum quality score (1-10) to consider well-formed (default: 7)
   -t, --template <format>       Custom commit message template (e.g., "(feat): message")
   -l, --language <lang>         Language for commit messages (default: "en")
+  -p, --prompt <text>           Custom prompt for AI message generation
   --staged                      Generate a message for staged changes (for git hooks)
   --install-hooks               Install git hooks to the current repository
   -h, --help                    display help for command
@@ -277,6 +279,12 @@ npx git-rewrite-commits --language ja  # Japanese
 npx git-rewrite-commits --staged
 npx git-rewrite-commits --staged --template "[JIRA-123] feat: message"
 
+# Use custom prompts for unique message styles
+npx git-rewrite-commits --prompt "Generate a commit message with emojis and enthusiasm"
+npx git-rewrite-commits --prompt "Write a haiku-style commit message"
+npx git-rewrite-commits --prompt "Be extremely technical and detailed"
+npx git-rewrite-commits --prompt "Follow Linux kernel commit style"
+
 # Install git hooks to your repository
 npx git-rewrite-commits --install-hooks
 
@@ -294,26 +302,43 @@ You can define your own commit message format using the `--template` option. The
 - `"🚀 feat: message"` → `🚀 feat: implement new dashboard`
 - `"type(scope): message"` → `fix(auth): handle expired tokens`
 
-## 🌍 Multi-Language Support
+## 🎨 Custom Prompts
 
-Generate commit messages in over 20 languages using the `--language` option:
+The `--prompt` option allows you to completely customize how the AI generates commit messages. This overrides the default instructions, giving you full creative control.
 
-- `en` - English (default)
-- `es` - Spanish
-- `fr` - French
-- `de` - German
-- `it` - Italian
-- `pt` - Portuguese
-- `ru` - Russian
-- `ja` - Japanese
-- `ko` - Korean
-- `zh` - Chinese
-- `ar` - Arabic
-- `hi` - Hindi
-- `nl` - Dutch
-- `pl` - Polish
-- `tr` - Turkish
-- And more...
+### Creative Examples:
+
+**Emoji-rich commits:**
+```bash
+npx git-rewrite-commits --prompt "Generate fun commit messages with relevant emojis"
+# Result: "🐛 fix: squash the authentication bug"
+```
+
+**Haiku-style commits:**
+```bash
+npx git-rewrite-commits --prompt "Write commit messages as haikus"
+# Result: "auth middleware fix / tokens validate properly / users rejoice now"
+```
+
+**Technical detail:**
+```bash
+npx git-rewrite-commits --prompt "Be extremely technical, mention specific functions and variables"
+# Result: "fix(auth): refactor validateJWT() to handle malformed exp claim in token payload"
+```
+
+**Team-specific style:**
+```bash
+npx git-rewrite-commits --prompt "Follow our team style: start with ticket number, be casual but clear"
+# Result: "TECH-123 - fixed that annoying auth bug everyone was complaining about"
+```
+
+### Combining with Templates:
+```bash
+# Custom prompt + template format
+npx git-rewrite-commits \
+  --template "[JIRA-XXX] type: message" \
+  --prompt "Be concise and focus on business impact"
+```
 
 ## 🧠 Smart Commit Detection
 
