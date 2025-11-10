@@ -5,6 +5,7 @@
 ![](./git-rewrite-commits.png)
 
 [![npm version](https://img.shields.io/npm/v/git-rewrite-commits.svg)](https://www.npmjs.com/package/git-rewrite-commits)
+[![GitHub Package](https://img.shields.io/badge/GitHub%20Package-latest-green)](https://github.com/f/git-rewrite-commits/packages)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Automatically rewrite your entire git commit history with better, conventional commit messages using AI. Perfect for cleaning up messy commit histories before open-sourcing projects or improving repository maintainability.
@@ -53,8 +54,19 @@ npx git-rewrite-commits
 
 Or install it globally:
 
+### From npm Registry
 ```bash
 npm install -g git-rewrite-commits
+```
+
+### From GitHub Packages
+```bash
+npm install -g @f/git-rewrite-commits --registry https://npm.pkg.github.com
+```
+
+**Note:** For GitHub Packages, you'll need to authenticate first:
+```bash
+npm login --registry=https://npm.pkg.github.com --scope=@f
 ```
 
 ## Quick Hook Installation
