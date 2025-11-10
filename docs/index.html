@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>git-rewrite-commits - AI-powered commit message rewriter</title>
+    <meta name="description" content="Automatically rewrite your entire git commit history with better, conventional commit messages using AI">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-terminal: #0c1015;
+            --text-primary: #c9d1d9;
+            --text-secondary: #8b949e;
+            --accent: #58a6ff;
+            --success: #3fb950;
+            --warning: #d29922;
+            --error: #f85149;
+            --border: #30363d;
+            --terminal-bg: #0e1419;
+            --terminal-header: #1c2128;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 4rem 0;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #58a6ff 0%, #79c0ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .tagline {
+            font-size: 1.3rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+
+        .badges {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 3rem;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            padding: 0.5rem 1rem;
+            background: var(--bg-secondary);
+            border-radius: 0.5rem;
+            border: 1px solid var(--border);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: transform 0.2s ease;
+        }
+
+        .badge:hover {
+            transform: translateY(-2px);
+        }
+
+        .install-command {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            padding: 1rem 2rem;
+            border-radius: 0.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.1rem;
+            display: inline-block;
+            margin-bottom: 3rem;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .install-command:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 20px rgba(88, 166, 255, 0.3);
+        }
+
+        .install-command::before {
+            content: "$ ";
+            color: var(--success);
+        }
+
+        .copy-hint {
+            position: absolute;
+            top: -30px;
+            right: 0;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .install-command:hover .copy-hint {
+            opacity: 1;
+        }
+
+        .terminal {
+            background: var(--terminal-bg);
+            border-radius: 0.75rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            margin: 2rem 0;
+            animation: slideIn 0.8s ease;
+        }
+
+        .terminal-header {
+            background: var(--terminal-header);
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .terminal-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .dot-red { background: #ff5f57; }
+        .dot-yellow { background: #ffbd2e; }
+        .dot-green { background: #28ca42; }
+
+        .terminal-title {
+            flex: 1;
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .terminal-body {
+            padding: 1.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            min-height: 400px;
+            line-height: 1.6;
+        }
+
+        .terminal-line {
+            margin: 0.5rem 0;
+            opacity: 0;
+            animation: fadeIn 0.4s ease forwards;
+        }
+
+        .prompt {
+            color: var(--success);
+        }
+
+        .command {
+            color: var(--text-primary);
+        }
+
+        .output {
+            color: var(--text-secondary);
+        }
+
+        .success {
+            color: var(--success);
+        }
+
+        .warning {
+            color: var(--warning);
+        }
+
+        .error {
+            color: var(--error);
+        }
+
+        .highlight {
+            color: var(--accent);
+        }
+
+        .typing {
+            position: relative;
+        }
+
+        .typing::after {
+            content: '|';
+            position: absolute;
+            right: -10px;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 4rem 0;
+        }
+
+        .feature-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            padding: 2rem;
+            transition: all 0.3s ease;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent);
+            box-shadow: 0 10px 30px rgba(88, 166, 255, 0.2);
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--accent);
+        }
+
+        .feature-description {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .demo-section {
+            margin: 4rem 0;
+        }
+
+        .demo-title {
+            font-size: 2rem;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .demo-controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .demo-btn {
+            padding: 0.75rem 1.5rem;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .demo-btn:hover {
+            background: #79c0ff;
+            transform: translateY(-2px);
+        }
+
+        .demo-btn:active {
+            transform: translateY(0);
+        }
+
+        .footer {
+            text-align: center;
+            padding: 4rem 0 2rem;
+            color: var(--text-secondary);
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 1rem;
+        }
+
+        .footer-link {
+            color: var(--accent);
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+
+        .footer-link:hover {
+            opacity: 0.8;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+            
+            .container {
+                padding: 1rem;
+            }
+            
+            .terminal-body {
+                font-size: 0.8rem;
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <h1>git-rewrite-commits</h1>
+            <p class="tagline">AI-powered git commit message rewriter using GPT</p>
+            
+            <div class="badges">
+                <div class="badge">⚡ Fast & Efficient</div>
+                <div class="badge">🤖 AI-Powered</div>
+                <div class="badge">🎯 Conventional Commits</div>
+                <div class="badge">🛡️ Safe by Default</div>
+            </div>
+
+            <div class="install-command" onclick="copyToClipboard('npx git-rewrite-commits')">
+                <span class="copy-hint">Click to copy</span>
+                npx git-rewrite-commits
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2 class="demo-title">See It In Action</h2>
+            <div class="demo-controls">
+                <button class="demo-btn" onclick="startDemo('rewrite')">Rewrite History</button>
+                <button class="demo-btn" onclick="startDemo('hooks')">Install Hooks</button>
+                <button class="demo-btn" onclick="startDemo('staged')">Generate Message</button>
+                <button class="demo-btn" onclick="startDemo('custom')">Custom Template</button>
+            </div>
+
+            <div class="terminal" id="demo-terminal">
+                <div class="terminal-header">
+                    <div class="terminal-dot dot-red"></div>
+                    <div class="terminal-dot dot-yellow"></div>
+                    <div class="terminal-dot dot-green"></div>
+                    <div class="terminal-title">Terminal - git-rewrite-commits</div>
+                </div>
+                <div class="terminal-body" id="terminal-output">
+                    <div class="terminal-line">
+                        <span class="prompt">$</span> <span class="command">npx git-rewrite-commits --help</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🚀</div>
+                <div class="feature-title">One Command Setup</div>
+                <div class="feature-description">
+                    Install git hooks instantly with a single command. Get AI-powered commit messages automatically when you commit.
+                </div>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">✨</div>
+                <div class="feature-title">Smart Detection</div>
+                <div class="feature-description">
+                    Automatically detects and skips well-formed commits. Only fixes commits that need improvement.
+                </div>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🎨</div>
+                <div class="feature-title">Custom Prompts</div>
+                <div class="feature-description">
+                    Override AI behavior with custom prompts. Create unique commit message styles for your team.
+                </div>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">👁️</div>
+                <div class="feature-title">Dry Run Mode</div>
+                <div class="feature-description">
+                    Preview all changes before applying. See exactly what will be modified without touching your repository.
+                </div>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">📝</div>
+                <div class="feature-title">Template System</div>
+                <div class="feature-description">
+                    Define custom commit formats with templates. Enforce team conventions automatically.
+                </div>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🛡️</div>
+                <div class="feature-title">Safe by Default</div>
+                <div class="feature-description">
+                    Automatically creates backup branches. Dry-run mode to preview changes before applying.
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Made with ❤️ by developers, for developers</p>
+            <div class="footer-links">
+                <a href="https://github.com/f/git-rewrite-commits" class="footer-link">GitHub</a>
+                <a href="https://www.npmjs.com/package/git-rewrite-commits" class="footer-link">npm</a>
+                <a href="https://github.com/f/git-rewrite-commits/issues" class="footer-link">Issues</a>
+                <a href="https://github.com/f/git-rewrite-commits/blob/main/README.md" class="footer-link">Documentation</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const demos = {
+            rewrite: [
+                { type: 'command', text: 'npx git-rewrite-commits --dry-run', delay: 0 },
+                { type: 'output', text: '', delay: 500 },
+                { type: 'output', text: '🔍 Analyzing git repository...', delay: 700, class: 'highlight' },
+                { type: 'output', text: '📝 Found 12 commits to process', delay: 1000 },
+                { type: 'output', text: '', delay: 1200 },
+                { type: 'output', text: 'Processing commits:', delay: 1400 },
+                { type: 'output', text: '[10%] abc1234: ✨ "update" → "feat(auth): implement JWT authentication"', delay: 1700, class: 'success' },
+                { type: 'output', text: '[20%] def5678: ✨ "fix bug" → "fix(api): resolve null pointer in user endpoint"', delay: 2100, class: 'success' },
+                { type: 'output', text: '[30%] ghi9012: ℹ️  Well-formed commit, skipping', delay: 2500, class: 'warning' },
+                { type: 'output', text: '[40%] jkl3456: ✨ "changes" → "refactor(ui): reorganize component structure"', delay: 2900, class: 'success' },
+                { type: 'output', text: '[50%] mno7890: ✨ "update readme" → "docs: add installation instructions"', delay: 3300, class: 'success' },
+                { type: 'output', text: '[60%] pqr1234: ℹ️  Well-formed commit, skipping', delay: 3700, class: 'warning' },
+                { type: 'output', text: '[70%] stu5678: ✨ "test" → "test: add unit tests for auth service"', delay: 4100, class: 'success' },
+                { type: 'output', text: '[80%] vwx9012: ✨ "css" → "style: improve button hover effects"', delay: 4500, class: 'success' },
+                { type: 'output', text: '[90%] yza3456: ℹ️  Well-formed commit, skipping', delay: 4900, class: 'warning' },
+                { type: 'output', text: '[100%] bcd7890: ✨ "deploy" → "ci: configure GitHub Actions workflow"', delay: 5300, class: 'success' },
+                { type: 'output', text: '', delay: 5500 },
+                { type: 'output', text: '✅ Dry run complete! 7 commits would be improved.', delay: 5700, class: 'success' },
+                { type: 'output', text: '💡 Run without --dry-run to apply changes', delay: 6000, class: 'highlight' }
+            ],
+            hooks: [
+                { type: 'command', text: 'npx git-rewrite-commits --install-hooks', delay: 0 },
+                { type: 'output', text: '', delay: 500 },
+                { type: 'output', text: '🔍 Checking git repository...', delay: 700, class: 'highlight' },
+                { type: 'output', text: '✅ Git repository detected', delay: 1000, class: 'success' },
+                { type: 'output', text: '', delay: 1200 },
+                { type: 'output', text: '📦 Installing git hooks...', delay: 1400, class: 'highlight' },
+                { type: 'output', text: '  ✅ prepare-commit-msg installed', delay: 1800, class: 'success' },
+                { type: 'output', text: '  ✅ post-commit installed', delay: 2200, class: 'success' },
+                { type: 'output', text: '  ✅ pre-push installed', delay: 2600, class: 'success' },
+                { type: 'output', text: '', delay: 2800 },
+                { type: 'output', text: '🎉 Git hooks installed successfully!', delay: 3000, class: 'success' },
+                { type: 'output', text: '', delay: 3200 },
+                { type: 'output', text: 'You now have:', delay: 3400 },
+                { type: 'output', text: '  • AI-powered commit messages when you run `git commit`', delay: 3700 },
+                { type: 'output', text: '  • Automatic message improvement after each commit', delay: 4000 },
+                { type: 'output', text: '  • Pre-push review of unpushed commits', delay: 4300 },
+                { type: 'output', text: '', delay: 4500 },
+                { type: 'output', text: 'Configure with:', delay: 4700, class: 'highlight' },
+                { type: 'output', text: '  git config hooks.commitTemplate "[JIRA-XXX] feat: message"', delay: 5000 },
+                { type: 'output', text: '  git config hooks.commitLanguage "es"', delay: 5300 }
+            ],
+            staged: [
+                { type: 'command', text: 'git add src/auth.ts', delay: 0 },
+                { type: 'output', text: '', delay: 500 },
+                { type: 'command', text: 'npx git-rewrite-commits --staged', delay: 700 },
+                { type: 'output', text: '', delay: 1200 },
+                { type: 'output', text: '🔍 Analyzing staged changes...', delay: 1400, class: 'highlight' },
+                { type: 'output', text: '', delay: 1700 },
+                { type: 'output', text: 'Files staged:', delay: 1900 },
+                { type: 'output', text: '  M  src/auth.ts', delay: 2100, class: 'warning' },
+                { type: 'output', text: '', delay: 2300 },
+                { type: 'output', text: '🤖 Generating commit message...', delay: 2500, class: 'highlight' },
+                { type: 'output', text: '', delay: 3500 },
+                { type: 'output', text: 'feat(auth): implement JWT token validation middleware', delay: 3700, class: 'success' },
+                { type: 'output', text: '', delay: 3900 },
+                { type: 'output', text: '✅ Message generated! Use it with:', delay: 4100, class: 'success' },
+                { type: 'output', text: 'git commit -m "feat(auth): implement JWT token validation middleware"', delay: 4400 }
+            ],
+            custom: [
+                { type: 'command', text: 'npx git-rewrite-commits --template "[TECH-123] type: message"', delay: 0 },
+                { type: 'output', text: '', delay: 500 },
+                { type: 'output', text: '🔍 Analyzing git repository...', delay: 700, class: 'highlight' },
+                { type: 'output', text: '🎨 Using custom template: [TECH-123] type: message', delay: 1000, class: 'highlight' },
+                { type: 'output', text: '', delay: 1200 },
+                { type: 'output', text: 'Processing commits:', delay: 1400 },
+                { type: 'output', text: '[25%] abc1234: ✨ "update" → "[TECH-123] feat: implement user authentication"', delay: 1800, class: 'success' },
+                { type: 'output', text: '[50%] def5678: ✨ "fix" → "[TECH-123] fix: resolve API null pointer exception"', delay: 2300, class: 'success' },
+                { type: 'output', text: '[75%] ghi9012: ✨ "test" → "[TECH-123] test: add unit tests for auth service"', delay: 2800, class: 'success' },
+                { type: 'output', text: '[100%] jkl3456: ✨ "docs" → "[TECH-123] docs: update installation instructions"', delay: 3300, class: 'success' },
+                { type: 'output', text: '', delay: 3500 },
+                { type: 'output', text: '✅ Complete! 4 commits improved with custom template', delay: 3700, class: 'success' }
+            ]
+        };
+
+        let currentAnimation = null;
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                const hint = document.querySelector('.copy-hint');
+                hint.textContent = 'Copied!';
+                setTimeout(() => {
+                    hint.textContent = 'Click to copy';
+                }, 2000);
+            });
+        }
+
+        function typeText(element, text, callback) {
+            let index = 0;
+            const interval = setInterval(() => {
+                element.textContent = text.substring(0, index + 1);
+                index++;
+                if (index >= text.length) {
+                    clearInterval(interval);
+                    element.classList.remove('typing');
+                    if (callback) callback();
+                }
+            }, 30);
+        }
+
+        function startDemo(type) {
+            if (currentAnimation) {
+                clearTimeout(currentAnimation);
+            }
+
+            const terminal = document.getElementById('terminal-output');
+            terminal.innerHTML = '';
+
+            const demo = demos[type];
+            let index = 0;
+
+            function showNextLine() {
+                if (index >= demo.length) return;
+
+                const item = demo[index];
+                const line = document.createElement('div');
+                line.className = 'terminal-line';
+                line.style.animationDelay = '0s';
+                
+                if (item.type === 'command') {
+                    line.innerHTML = `<span class="prompt">$</span> <span class="command typing"></span>`;
+                    terminal.appendChild(line);
+                    
+                    setTimeout(() => {
+                        line.style.opacity = '1';
+                        const commandEl = line.querySelector('.command');
+                        typeText(commandEl, item.text, () => {
+                            index++;
+                            currentAnimation = setTimeout(showNextLine, 300);
+                        });
+                    }, 100);
+                } else {
+                    const className = item.class || 'output';
+                    line.innerHTML = `<span class="${className}">${item.text}</span>`;
+                    terminal.appendChild(line);
+                    
+                    setTimeout(() => {
+                        line.style.opacity = '1';
+                        index++;
+                        currentAnimation = setTimeout(showNextLine, item.delay || 300);
+                    }, 100);
+                }
+            }
+
+            showNextLine();
+        }
+
+        // Auto-start the first demo on page load
+        window.addEventListener('load', () => {
+            setTimeout(() => startDemo('rewrite'), 1000);
+        });
+    </script>
+</body>
+</html>
