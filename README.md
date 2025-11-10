@@ -481,12 +481,6 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Acknowledgments
-
-- OpenAI for providing the GPT API
-- The conventional commits specification
-- The git community for powerful version control tools
-
 ## Bug Reports
 
 If you discover any bugs, please create an issue [here](https://github.com/f/git-rewrite-commits/issues).
