@@ -18,6 +18,7 @@ export interface RewriteOptions {
   minQualityScore?: number;
   template?: string;
   language?: string;
+  prompt?: string;
 }
 
 export interface CommitInfo {
@@ -204,7 +205,28 @@ Example: If template is "[JIRA-XXX] type: message", generate something like "[JI
         ? this.getLanguageInstructions(this.options.language)
         : 'Write the commit message in English.';
 
-      const prompt = `You are a git commit message generator. Analyze the following git diff and file changes, then generate a clear, concise commit message.
+      // Allow custom prompt to override default instructions
+      let prompt: string;
+      
+      if (this.options.prompt) {
+        // User provided custom prompt - use it with basic context
+        prompt = `You are a git commit message generator. Analyze the following git diff and file changes, then ${this.options.prompt}
+
+Old commit message: "${oldMessage}"
+
+Files changed:
+${files.join('\n')}
+
+Git diff (truncated if too long):
+${diff.substring(0, 8000)}
+
+${this.options.template ? `Format: ${this.options.template}` : ''}
+${languageInstruction}
+
+Return ONLY the commit message, nothing else.`;
+      } else {
+        // Use default prompt with all standard instructions
+        prompt = `You are a git commit message generator. Analyze the following git diff and file changes, then generate a clear, concise commit message.
 
 Old commit message: "${oldMessage}"
 
@@ -226,6 +248,7 @@ ${formatInstructions}
 11. ${languageInstruction}
 
 Return ONLY the commit message, nothing else. No explanations, just the message.`;
+      }
 
       const response = await this.openai.chat.completions.create({
         model: this.options.model || 'gpt-3.5-turbo',

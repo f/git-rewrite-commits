@@ -124,6 +124,7 @@ program
   .option('--min-quality-score <score>', 'Minimum quality score (1-10) to consider well-formed', parseFloat)
   .option('-t, --template <format>', 'Custom commit message template (e.g., "(feat): message" or "[JIRA-XXX] type: message")')
   .option('-l, --language <lang>', 'Language for commit messages (default: "en")', 'en')
+  .option('-p, --prompt <text>', 'Custom prompt for AI message generation (overrides default instructions)')
   .option('--staged', 'Generate a message for staged changes (for git hooks)')
   .option('--install-hooks', 'Install git hooks to the current repository')
   .action(async (options) => {
@@ -157,6 +158,7 @@ program
         minQualityScore: options.minQualityScore,
         template: options.template,
         language: options.language,
+        prompt: options.prompt,
       });
 
       if (options.staged) {
@@ -209,6 +211,11 @@ ${chalk.bold('Examples:')}
   ${chalk.gray('# Generate message for staged changes (for git hooks)')}
   $ git-rewrite-commits --staged
   $ git-rewrite-commits --staged --template "[JIRA-123] feat: message"
+
+  ${chalk.gray('# Use custom prompt for message generation')}
+  $ git-rewrite-commits --prompt "Generate a funny commit message with emojis"
+  $ git-rewrite-commits --prompt "Write a haiku commit message"
+  $ git-rewrite-commits --prompt "Be extremely detailed and technical"
 
   ${chalk.gray('# Install git hooks to your repository')}
   $ git-rewrite-commits --install-hooks
