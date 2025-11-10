@@ -1,0 +1,88 @@
+#!/bin/sh
+#
+# Git prepare-commit-msg hook to suggest better commit messages
+#
+# Installation:
+#   1. Copy this file to .git/hooks/prepare-commit-msg
+#   2. Make it executable: chmod +x .git/hooks/prepare-commit-msg
+#
+# This hook will:
+# - Analyze your staged changes
+# - Generate an AI-powered commit message
+# - Insert it as the default message (you can edit before saving)
+
+COMMIT_MSG_FILE=$1
+COMMIT_SOURCE=$2
+SHA1=$3
+
+# Only process for normal commits (not merge, squash, amend, etc.)
+if [ -z "$COMMIT_SOURCE" ]; then
+    # Check if OPENAI_API_KEY is set
+    if [ -z "$OPENAI_API_KEY" ]; then
+        # Add a helpful comment if API key is not set
+        echo "# Tip: Set OPENAI_API_KEY to get AI-generated commit messages" > "$COMMIT_MSG_FILE.tmp"
+        echo "" >> "$COMMIT_MSG_FILE.tmp"
+        cat "$COMMIT_MSG_FILE" >> "$COMMIT_MSG_FILE.tmp"
+        mv "$COMMIT_MSG_FILE.tmp" "$COMMIT_MSG_FILE"
+        exit 0
+    fi
+
+    # Check if there are staged changes
+    if ! git diff --cached --quiet; then
+        # Generate AI-powered commit message
+        echo "🤖 Generating AI-powered commit message..." >&2
+        
+        # Build command with optional template and language
+        CMD="npx git-rewrite-commits --staged"
+        
+        # Add template if configured (via environment variable or git config)
+        TEMPLATE="${GIT_COMMIT_TEMPLATE:-$(git config --get hooks.commitTemplate)}"
+        if [ -n "$TEMPLATE" ]; then
+            CMD="$CMD --template \"$TEMPLATE\""
+        fi
+        
+        # Add language if configured (via environment variable or git config)
+        LANGUAGE="${GIT_COMMIT_LANGUAGE:-$(git config --get hooks.commitLanguage)}"
+        if [ -n "$LANGUAGE" ]; then
+            CMD="$CMD --language $LANGUAGE"
+        fi
+        
+        # Generate the message using the tool
+        AI_MESSAGE=$(eval "$CMD" 2>/dev/null)
+        
+        if [ $? -eq 0 ] && [ -n "$AI_MESSAGE" ]; then
+            # Success! Use the AI-generated message
+            cat > "$COMMIT_MSG_FILE" << EOF
+$AI_MESSAGE
+
+# ✨ AI-generated commit message above
+# Feel free to edit as needed before saving
+# 
+# Files being committed:
+$(git diff --cached --name-status | sed 's/^/# /')
+EOF
+        else
+            # Fallback if generation fails
+            cat > "$COMMIT_MSG_FILE.tmp" << EOF
+# 💡 Tip: AI message generation failed. Writing your own message.
+# 
+# Consider using conventional commit format:
+#   feat: add new feature
+#   fix: fix a bug
+#   docs: documentation changes
+#   style: formatting changes
+#   refactor: code restructuring
+#   test: add or update tests
+#   chore: maintenance tasks
+#
+# Files being committed:
+$(git diff --cached --name-status | sed 's/^/# /')
+
+$(cat "$COMMIT_MSG_FILE")
+EOF
+            mv "$COMMIT_MSG_FILE.tmp" "$COMMIT_MSG_FILE"
+        fi
+    fi
+fi
+
+exit 0

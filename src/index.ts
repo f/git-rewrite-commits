@@ -364,6 +364,37 @@ process.stdin.on('end', () => {
     }
   }
 
+  public async generateForStaged(): Promise<string> {
+    // Check git repository
+    this.checkGitRepository();
+
+    // Get staged changes
+    const stagedFiles = this.execCommand('git diff --cached --name-only')
+      .trim()
+      .split('\n')
+      .filter(Boolean);
+
+    if (stagedFiles.length === 0) {
+      throw new Error('No staged changes found. Stage your changes with: git add <files>');
+    }
+
+    // Get staged diff
+    const stagedDiff = this.execCommand('git diff --cached');
+
+    if (!stagedDiff || stagedDiff.trim().length === 0) {
+      throw new Error('No staged changes found');
+    }
+
+    // Generate commit message based on staged changes
+    const message = await this.generateCommitMessage(
+      stagedDiff,
+      stagedFiles,
+      '' // No old message for new commits
+    );
+
+    return message;
+  }
+
   public async rewrite(): Promise<void> {
     console.log(chalk.cyan.bold('\n🚀 Git Commit Message Rewriter with AI\n'));
 

@@ -7,11 +7,32 @@
 
 Automatically rewrite your entire git commit history with better, conventional commit messages using AI. Perfect for cleaning up messy commit histories before open-sourcing projects or improving repository maintainability.
 
+## ⚠️ Important Disclaimer
+
+> **This tool rewrites git history, which is generally NOT recommended for shared repositories!**
+> 
+> **When to use:**
+> - ✅ Personal projects before making them public
+> - ✅ Feature branches before merging (with team agreement)
+> - ✅ Cleaning up local commits before pushing
+> - ✅ Preparing repositories for open-sourcing
+> 
+> **When NOT to use:**
+> - ❌ On shared branches without team coordination
+> - ❌ After pushing commits that others have pulled
+> - ❌ On main/master branches of team projects
+> - ❌ In repositories where commit hashes are referenced
+> 
+> **Remember:** Rewriting history changes commit hashes and requires force-pushing, which can disrupt your team's workflow.
+
 ## 🎯 Features
 
 - **AI-Powered**: Uses OpenAI's GPT models to generate meaningful commit messages
+- **One-Command Hook Setup**: Install git hooks instantly with `npx git-rewrite-commits --install-hooks`
 - **Smart Detection**: Automatically skips well-formed commits (can be disabled)
 - **Quality Scoring**: Assesses commit quality and only fixes broken messages
+- **Custom Templates**: Define your own commit format with `--template`
+- **Multi-language**: Generate messages in 20+ languages
 - **Conventional Commits**: Follows conventional commit standards (feat, fix, docs, etc.)
 - **Safe**: Automatically creates backup branches before rewriting
 - **Flexible**: Supports dry-run mode to preview changes
@@ -33,14 +54,149 @@ Or install it globally:
 npm install -g git-rewrite-commits
 ```
 
+## 🎯 Quick Hook Installation
+
+**One command to enable AI-powered commit messages:**
+
+```bash
+npx git-rewrite-commits --install-hooks
+```
+
+That's it! Now you get:
+- 🤖 **Automatic AI messages** when you run `git commit`
+- ✨ **Post-commit improvement** after each commit
+- 🚀 **Pre-push review** before pushing to remote
+
+### Configure (Optional)
+
+```bash
+# Set your template format
+git config hooks.commitTemplate "[JIRA-XXX] feat: message"
+
+# Set language
+git config hooks.commitLanguage "es"  # Spanish, French, etc.
+```
+
+## 💡 Real-World Examples
+
+### Automatic Post-Commit Hook (Fix commits as you work)
+
+Add to `.git/hooks/post-commit` to automatically improve your last commit message:
+
+```bash
+#!/bin/sh
+# Automatically improve the last commit message after each commit
+npx git-rewrite-commits --max-commits 1 --skip-backup --no-skip-well-formed
+```
+
+Make it executable: `chmod +x .git/hooks/post-commit`
+
+**Or use our ready-made hook:** `cp hooks/post-commit .git/hooks/`
+
+### Pre-Push Hook (Clean up before pushing)
+
+Add to `.git/hooks/pre-push` to fix commits before pushing:
+
+```bash
+#!/bin/sh
+# Clean up the last 5 commits before pushing
+echo "🔧 Improving commit messages before push..."
+npx git-rewrite-commits --max-commits 5 --dry-run
+
+echo "Apply changes? (y/n)"
+read answer
+if [ "$answer" = "y" ]; then
+    npx git-rewrite-commits --max-commits 5
+fi
+```
+
+### Alias for Quick Fixes
+
+Add to your `~/.gitconfig` or `~/.zshrc`/`~/.bashrc`:
+
+```bash
+# Git alias
+git config --global alias.fix-commits '!npx git-rewrite-commits --max-commits'
+
+# Usage: git fix-commits 3
+```
+
+```bash
+# Shell alias
+alias fix-last-commit='npx git-rewrite-commits --max-commits 1 --skip-backup'
+alias fix-branch='npx git-rewrite-commits --max-commits 20'
+
+# Usage: fix-last-commit
+```
+
+### Team Workflow: Feature Branch Cleanup
+
+Before creating a pull request:
+
+```bash
+# 1. Check what needs fixing
+npx git-rewrite-commits --dry-run --max-commits 10
+
+# 2. Apply improvements
+npx git-rewrite-commits --max-commits 10
+
+# 3. Force push to your feature branch
+git push --force-with-lease origin feature-branch
+```
+
+### CI/CD Integration
+
+Add to your CI pipeline (e.g., GitHub Actions) for PR validation:
+
+```yaml
+- name: Check Commit Quality
+  run: |
+    npx git-rewrite-commits --dry-run --max-commits ${{ github.event.pull_request.commits }}
+    # This will show which commits would be improved
+```
+
+### Preparing for Open Source
+
+Before making a private repo public:
+
+```bash
+# Fix all commits with custom template
+npx git-rewrite-commits \
+  --template "feat(scope): message" \
+  --language en \
+  --no-skip-well-formed
+
+# Review the changes
+git log --oneline -20
+
+# If satisfied, force push
+git push --force-with-lease origin main
+```
+
 ## 🚀 Quick Start
+
+### Option 1: Enable AI Commits Automatically (Recommended)
 
 1. **Set up your OpenAI API key:**
    ```bash
    export OPENAI_API_KEY="your-api-key-here"
    ```
-   
-   Get your API key at: https://platform.openai.com/api-keys
+
+2. **Install git hooks in your repository:**
+   ```bash
+   cd your-repo
+   npx git-rewrite-commits --install-hooks
+   ```
+
+3. **That's it! Now just commit normally:**
+   ```bash
+   git add .
+   git commit  # AI message appears automatically!
+   ```
+
+### Option 2: Rewrite Existing History
+
+1. **Set up your OpenAI API key** (same as above)
 
 2. **Navigate to your git repository:**
    ```bash
@@ -49,7 +205,8 @@ npm install -g git-rewrite-commits
 
 3. **Run the tool:**
    ```bash
-   npx git-rewrite-commits
+   npx git-rewrite-commits  # Rewrites all commits
+   npx git-rewrite-commits --max-commits 10  # Only last 10
    ```
 
 ## 📖 Usage
@@ -78,6 +235,10 @@ Options:
   --skip-backup                 Skip creating a backup branch (not recommended)
   --no-skip-well-formed         Process all commits, even well-formed ones
   --min-quality-score <score>   Minimum quality score (1-10) to consider well-formed (default: 7)
+  -t, --template <format>       Custom commit message template (e.g., "(feat): message")
+  -l, --language <lang>         Language for commit messages (default: "en")
+  --staged                      Generate a message for staged changes (for git hooks)
+  --install-hooks               Install git hooks to the current repository
   -h, --help                    display help for command
 ```
 
@@ -99,9 +260,58 @@ npx git-rewrite-commits --no-skip-well-formed
 # Set stricter quality threshold (8/10 instead of default 7/10)
 npx git-rewrite-commits --min-quality-score 8
 
+# Use custom commit format templates
+npx git-rewrite-commits --template "(feat): message"
+npx git-rewrite-commits --template "[JIRA-123] feat: message"
+npx git-rewrite-commits --template "🚀 feat: message"
+
+# Generate commit messages in different languages
+npx git-rewrite-commits --language es  # Spanish
+npx git-rewrite-commits --language fr  # French
+npx git-rewrite-commits --language zh  # Chinese
+npx git-rewrite-commits --language ja  # Japanese
+
+# Generate message for staged changes (great for git hooks!)
+npx git-rewrite-commits --staged
+npx git-rewrite-commits --staged --template "[JIRA-123] feat: message"
+
+# Install git hooks to your repository
+npx git-rewrite-commits --install-hooks
+
 # Verbose mode for debugging
 npx git-rewrite-commits --verbose
 ```
+
+## 📝 Custom Templates
+
+You can define your own commit message format using the `--template` option. The tool will follow your template pattern while generating meaningful descriptions.
+
+### Template Examples:
+- `"(feat): message"` → `(feat): add user authentication`
+- `"[JIRA-XXX] type: message"` → `[JIRA-123] fix: resolve null pointer`
+- `"🚀 feat: message"` → `🚀 feat: implement new dashboard`
+- `"type(scope): message"` → `fix(auth): handle expired tokens`
+
+## 🌍 Multi-Language Support
+
+Generate commit messages in over 20 languages using the `--language` option:
+
+- `en` - English (default)
+- `es` - Spanish
+- `fr` - French
+- `de` - German
+- `it` - Italian
+- `pt` - Portuguese
+- `ru` - Russian
+- `ja` - Japanese
+- `ko` - Korean
+- `zh` - Chinese
+- `ar` - Arabic
+- `hi` - Hindi
+- `nl` - Dutch
+- `pl` - Polish
+- `tr` - Turkish
+- And more...
 
 ## 🧠 Smart Commit Detection
 
