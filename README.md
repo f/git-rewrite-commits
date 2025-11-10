@@ -2,6 +2,8 @@
 
 > AI-powered git commit message rewriter using GPT
 
+![](./git-rewrite-commits.png)
+
 [![npm version](https://img.shields.io/npm/v/git-rewrite-commits.svg)](https://www.npmjs.com/package/git-rewrite-commits)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
