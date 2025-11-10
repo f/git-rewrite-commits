@@ -1,0 +1,34 @@
+#!/bin/sh
+#
+# Git post-commit hook to automatically improve commit messages
+# 
+# Installation:
+#   1. Copy this file to .git/hooks/post-commit
+#   2. Make it executable: chmod +x .git/hooks/post-commit
+#
+# This hook will:
+# - Automatically run after each commit
+# - Improve the last commit message using AI
+# - Skip if the message is already well-formed
+# - Work silently in the background
+
+# Check if OPENAI_API_KEY is set
+if [ -z "$OPENAI_API_KEY" ]; then
+    echo "⚠️  OPENAI_API_KEY not set, skipping commit message improvement"
+    exit 0
+fi
+
+# Check if we're in a rebase or merge
+if [ -d "$(git rev-parse --git-dir)/rebase-merge" ] || [ -d "$(git rev-parse --git-dir)/rebase-apply" ]; then
+    exit 0
+fi
+
+# Improve the last commit message
+echo "🤖 Improving commit message..."
+npx git-rewrite-commits \
+    --max-commits 1 \
+    --skip-backup \
+    --quiet \
+    2>/dev/null || true
+
+echo "✨ Commit message improved!"

@@ -9,7 +9,11 @@ async function main() {
     model: 'gpt-3.5-turbo',
     dryRun: true, // Set to false to actually rewrite
     verbose: true,
-    maxCommits: 5, // Process only first 5 commits
+    maxCommits: 5, // Process only last 5 commits
+    skipWellFormed: true, // Skip commits that are already well-formed
+    minQualityScore: 7, // Minimum quality score to consider well-formed
+    template: '(feat): message', // Optional: custom format template
+    language: 'en', // Optional: language for messages (default: 'en')
   });
 
   try {
