@@ -17,10 +17,15 @@ SHA1=$3
 
 # Only process for normal commits (not merge, squash, amend, etc.)
 if [ -z "$COMMIT_SOURCE" ]; then
-    # Check if OPENAI_API_KEY is set
-    if [ -z "$OPENAI_API_KEY" ]; then
+    # Determine AI provider (via environment variable or git config)
+    PROVIDER="${GIT_COMMIT_PROVIDER:-$(git config --get hooks.commitProvider)}"
+    PROVIDER="${PROVIDER:-openai}"  # Default to OpenAI
+    
+    # Check if provider is properly configured
+    if [ "$PROVIDER" = "openai" ] && [ -z "$OPENAI_API_KEY" ]; then
         # Add a helpful comment if API key is not set
         echo "# Tip: Set OPENAI_API_KEY to get AI-generated commit messages" > "$COMMIT_MSG_FILE.tmp"
+        echo "# Or use Ollama: git config hooks.commitProvider ollama" >> "$COMMIT_MSG_FILE.tmp"
         echo "" >> "$COMMIT_MSG_FILE.tmp"
         cat "$COMMIT_MSG_FILE" >> "$COMMIT_MSG_FILE.tmp"
         mv "$COMMIT_MSG_FILE.tmp" "$COMMIT_MSG_FILE"
@@ -32,8 +37,8 @@ if [ -z "$COMMIT_SOURCE" ]; then
         # Generate AI-powered commit message
         echo "🤖 Generating AI-powered commit message..." >&2
         
-        # Build command with optional template and language
-        CMD="npx git-rewrite-commits --staged"
+        # Build command with provider and optional template and language
+        CMD="npx git-rewrite-commits --staged --provider $PROVIDER"
         
         # Add template if configured (via environment variable or git config)
         TEMPLATE="${GIT_COMMIT_TEMPLATE:-$(git config --get hooks.commitTemplate)}"

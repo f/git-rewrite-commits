@@ -12,9 +12,14 @@
 # - Skip if the message is already well-formed
 # - Work silently in the background
 
-# Check if OPENAI_API_KEY is set
-if [ -z "$OPENAI_API_KEY" ]; then
+# Determine AI provider (via environment variable or git config)
+PROVIDER="${GIT_COMMIT_PROVIDER:-$(git config --get hooks.commitProvider)}"
+PROVIDER="${PROVIDER:-openai}"  # Default to OpenAI
+
+# Check if provider is properly configured
+if [ "$PROVIDER" = "openai" ] && [ -z "$OPENAI_API_KEY" ]; then
     echo "⚠️  OPENAI_API_KEY not set, skipping commit message improvement"
+    echo "   Or configure Ollama: git config hooks.commitProvider ollama"
     exit 0
 fi
 
@@ -24,8 +29,9 @@ if [ -d "$(git rev-parse --git-dir)/rebase-merge" ] || [ -d "$(git rev-parse --g
 fi
 
 # Improve the last commit message
-echo "🤖 Improving commit message..."
+echo "🤖 Improving commit message using $PROVIDER..."
 npx git-rewrite-commits \
+    --provider "$PROVIDER" \
     --max-commits 1 \
     --skip-backup \
     --quiet \

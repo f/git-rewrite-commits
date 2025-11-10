@@ -11,9 +11,14 @@
 # - Ask for confirmation before making changes
 # - Only process unpushed commits
 
-# Check if OPENAI_API_KEY is set
-if [ -z "$OPENAI_API_KEY" ]; then
+# Determine AI provider (via environment variable or git config)
+PROVIDER="${GIT_COMMIT_PROVIDER:-$(git config --get hooks.commitProvider)}"
+PROVIDER="${PROVIDER:-openai}"  # Default to OpenAI
+
+# Check if provider is properly configured
+if [ "$PROVIDER" = "openai" ] && [ -z "$OPENAI_API_KEY" ]; then
     echo "⚠️  OPENAI_API_KEY not set, skipping commit message check"
+    echo "   Or configure Ollama: git config hooks.commitProvider ollama"
     exit 0
 fi
 
@@ -32,7 +37,7 @@ echo "🔍 Checking $unpushed unpushed commit(s) for quality..."
 echo ""
 
 # First, do a dry run to show what would change
-npx git-rewrite-commits --max-commits "$unpushed" --dry-run
+npx git-rewrite-commits --provider "$PROVIDER" --max-commits "$unpushed" --dry-run
 
 # Ask for confirmation
 echo ""
@@ -40,8 +45,8 @@ echo "Would you like to apply these improvements before pushing? (y/n)"
 read -r answer < /dev/tty
 
 if [ "$answer" = "y" ] || [ "$answer" = "yes" ]; then
-    echo "📝 Improving commit messages..."
-    npx git-rewrite-commits --max-commits "$unpushed" --skip-backup
+    echo "📝 Improving commit messages using $PROVIDER..."
+    npx git-rewrite-commits --provider "$PROVIDER" --max-commits "$unpushed" --skip-backup
     echo "✅ Commit messages improved! Continuing with push..."
 else
     echo "⏭️  Skipping improvements, continuing with original messages..."
