@@ -1,31 +1,31 @@
 # npx git-rewrite-commits
 
-> 🚀 AI-powered git commit message rewriter using GPT
+> AI-powered git commit message rewriter using GPT
 
 [![npm version](https://img.shields.io/npm/v/git-rewrite-commits.svg)](https://www.npmjs.com/package/git-rewrite-commits)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Automatically rewrite your entire git commit history with better, conventional commit messages using AI. Perfect for cleaning up messy commit histories before open-sourcing projects or improving repository maintainability.
 
-## ⚠️ Important Disclaimer
+## Important Disclaimer
 
 > **This tool rewrites git history, which is generally NOT recommended for shared repositories!**
 > 
 > **When to use:**
-> - ✅ Personal projects before making them public
-> - ✅ Feature branches before merging (with team agreement)
-> - ✅ Cleaning up local commits before pushing
-> - ✅ Preparing repositories for open-sourcing
+> - Personal projects before making them public
+> - Feature branches before merging (with team agreement)
+> - Cleaning up local commits before pushing
+> - Preparing repositories for open-sourcing
 > 
 > **When NOT to use:**
-> - ❌ On shared branches without team coordination
-> - ❌ After pushing commits that others have pulled
-> - ❌ On main/master branches of team projects
-> - ❌ In repositories where commit hashes are referenced
+> - On shared branches without team coordination
+> - After pushing commits that others have pulled
+> - On main/master branches of team projects
+> - In repositories where commit hashes are referenced
 > 
 > **Remember:** Rewriting history changes commit hashes and requires force-pushing, which can disrupt your team's workflow.
 
-## 🎯 Features
+## Features
 
 - **AI-Powered**: Uses OpenAI's GPT models to generate meaningful commit messages
 - **One-Command Hook Setup**: Install git hooks instantly with `npx git-rewrite-commits --install-hooks`
@@ -41,7 +41,7 @@ Automatically rewrite your entire git commit history with better, conventional c
 - **Progress Tracking**: Real-time progress indicators with colored output
 - **Efficient**: Process only the last N commits for faster operation
 
-## 📦 Installation
+## Installation
 
 You can run this tool directly with npx (no installation required):
 
@@ -55,7 +55,7 @@ Or install it globally:
 npm install -g git-rewrite-commits
 ```
 
-## 🎯 Quick Hook Installation
+## Quick Hook Installation
 
 **One command to enable AI-powered commit messages:**
 
@@ -64,11 +64,11 @@ npx git-rewrite-commits --install-hooks
 ```
 
 That's it! Now you get:
-- 🤖 **Automatic AI messages** when you run `git commit`
-- ✨ **Post-commit improvement** after each commit
-- 🚀 **Pre-push review** before pushing to remote
+- **Automatic AI messages** when you run `git commit`
+- **Post-commit improvement** after each commit
+- **Pre-push review** before pushing to remote
 
-> 📚 **See [QUICK_START.md](QUICK_START.md) for detailed setup guide**
+> **See [QUICK_START.md](QUICK_START.md) for detailed setup guide**
 
 ### Configure (Optional)
 
@@ -80,7 +80,7 @@ git config hooks.commitTemplate "[JIRA-XXX] feat: message"
 git config hooks.commitLanguage "es"  # Spanish, French, etc.
 ```
 
-## 💡 Real-World Examples
+## Real-World Examples
 
 ### Automatic Post-Commit Hook (Fix commits as you work)
 
@@ -176,7 +176,7 @@ git log --oneline -20
 git push --force-with-lease origin main
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Option 1: Enable AI Commits Automatically (Recommended)
 
@@ -212,7 +212,7 @@ git push --force-with-lease origin main
    npx git-rewrite-commits --max-commits 10  # Only last 10
    ```
 
-## 📖 Usage
+## Usage
 
 ### Basic Usage
 
@@ -267,7 +267,7 @@ npx git-rewrite-commits --min-quality-score 8
 # Use custom commit format templates
 npx git-rewrite-commits --template "(feat): message"
 npx git-rewrite-commits --template "[JIRA-123] feat: message"
-npx git-rewrite-commits --template "🚀 feat: message"
+npx git-rewrite-commits --template "feat: message"
 
 # Generate commit messages in different languages
 npx git-rewrite-commits --language es  # Spanish
@@ -292,17 +292,17 @@ npx git-rewrite-commits --install-hooks
 npx git-rewrite-commits --verbose
 ```
 
-## 📝 Custom Templates
+## Custom Templates
 
 You can define your own commit message format using the `--template` option. The tool will follow your template pattern while generating meaningful descriptions.
 
 ### Template Examples:
 - `"(feat): message"` → `(feat): add user authentication`
 - `"[JIRA-XXX] type: message"` → `[JIRA-123] fix: resolve null pointer`
-- `"🚀 feat: message"` → `🚀 feat: implement new dashboard`
+- `"feat: message"` → `feat: implement new dashboard`
 - `"type(scope): message"` → `fix(auth): handle expired tokens`
 
-## 🎨 Custom Prompts
+## Custom Prompts
 
 The `--prompt` option allows you to completely customize how the AI generates commit messages. This overrides the default instructions, giving you full creative control.
 
@@ -340,7 +340,7 @@ npx git-rewrite-commits \
   --prompt "Be concise and focus on business impact"
 ```
 
-## 🧠 Smart Commit Detection
+## Smart Commit Detection
 
 The tool automatically assesses each commit message quality based on:
 
@@ -352,14 +352,14 @@ The tool automatically assesses each commit message quality based on:
 
 Messages scoring 7/10 or higher are considered well-formed and skipped by default. Use `--no-skip-well-formed` to process all commits or `--min-quality-score` to adjust the threshold.
 
-## 🛡️ Safety Features
+## Safety Features
 
 1. **Backup Branch**: Automatically creates a backup branch before rewriting
 2. **Confirmation Prompts**: Asks for confirmation at critical steps
 3. **Dry Run Mode**: Preview all changes without modifying your repository
 4. **Uncommitted Changes Warning**: Alerts you about uncommitted changes
 
-## ⚠️ Important Notes
+## Important Notes
 
 ### Before Using
 
@@ -390,7 +390,7 @@ Messages scoring 7/10 or higher are considered well-formed and skipped by defaul
    git branch -D backup-branch-name
    ```
 
-## 🎨 Conventional Commit Types
+## Conventional Commit Types
 
 The tool generates commit messages following these conventional types:
 
@@ -406,7 +406,7 @@ The tool generates commit messages following these conventional types:
 - `build`: Changes affecting build system or dependencies
 - `revert`: Reverting a previous commit
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -417,7 +417,7 @@ The tool generates commit messages following these conventional types:
 - `gpt-3.5-turbo` (default) - Fast and cost-effective
 - `gpt-4o` - Latest GPT model
 
-## 🚀 Development
+## Development
 
 ### Setup
 
@@ -444,7 +444,7 @@ npm run build
 node dist/cli.js
 ```
 
-## 📝 How It Works
+## How It Works
 
 1. **Analyzes each commit**: Reads the diff, changed files, and original message
 2. **Generates new message**: Uses AI to create a conventional commit message
@@ -452,7 +452,7 @@ node dist/cli.js
 4. **Rewrites history**: Uses `git filter-branch` to apply new messages
 5. **Provides recovery options**: Keeps backup branch for restoration if needed
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
 
@@ -462,21 +462,21 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - OpenAI for providing the GPT API
 - The conventional commits specification
 - The git community for powerful version control tools
 
-## 🐛 Bug Reports
+## Bug Reports
 
 If you discover any bugs, please create an issue [here](https://github.com/f/git-rewrite-commits/issues).
 
-## 📮 Contact
+## Contact
 
 For questions and support, please open an issue in the GitHub repository.
 

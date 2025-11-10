@@ -198,7 +198,8 @@ Example: If template is "[JIRA-XXX] type: message", generate something like "[JI
       } else {
         formatInstructions = `1. Follows the format: <type>(<scope>): <subject>
 2. Types can be: feat, fix, docs, style, refactor, test, chore, perf, ci, build, revert
-3. Scope is optional but recommended (e.g., auth, api, ui)`;
+3. Scope is optional but recommended (e.g., auth, api, ui)
+4. All should be in lowercase`;
       }
 
       const languageInstruction = this.options.language && this.options.language !== 'en' 
