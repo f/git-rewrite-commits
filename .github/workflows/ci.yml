@@ -66,6 +66,29 @@ jobs:
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
     
+    - name: Prepare for GitHub Packages
+      run: |
+        # Create a modified package.json for GitHub Packages
+        node -e "
+        const pkg = require('./package.json');
+        pkg.name = '@f/git-rewrite-commits';
+        pkg.publishConfig = {
+          registry: 'https://npm.pkg.github.com'
+        };
+        require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));
+        "
+    
+    - name: Setup Node.js for GitHub Packages
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18.x'
+        registry-url: 'https://npm.pkg.github.com'
+    
+    - name: Publish to GitHub Packages
+      run: npm publish
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:
