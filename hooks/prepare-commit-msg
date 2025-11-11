@@ -74,9 +74,7 @@ if [ -z "$COMMIT_SOURCE" ]; then
         fi
         
         # Generate the message using the tool with properly quoted arguments
-        AI_MESSAGE=$("$@" 2>/dev/null)
-        
-        if [ $? -eq 0 ] && [ -n "$AI_MESSAGE" ]; then
+        if AI_MESSAGE=$("$@" 2>/dev/null) && [ -n "$AI_MESSAGE" ]; then
             # Success! Use the AI-generated message
             cat > "$COMMIT_MSG_FILE" << EOF
 $AI_MESSAGE
