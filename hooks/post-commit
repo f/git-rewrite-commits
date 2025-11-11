@@ -1,16 +1,24 @@
 #!/bin/sh
 #
-# Git post-commit hook to automatically improve commit messages
+# Git post-commit hook to optionally improve commit messages
 # 
 # Installation:
 #   1. Copy this file to .git/hooks/post-commit
 #   2. Make it executable: chmod +x .git/hooks/post-commit
+#   3. Enable it: git config hooks.postCommitRewrite true
 #
 # This hook will:
-# - Automatically run after each commit
+# - Run after each commit ONLY if explicitly enabled
 # - Improve the last commit message using AI
 # - Skip if the message is already well-formed
-# - Work silently in the background
+# - Always create a backup before rewriting
+
+# Check if post-commit rewrite is enabled (opt-in)
+ENABLED=$(git config --get --type=bool hooks.postCommitRewrite)
+if [ "$ENABLED" != "true" ]; then
+    # Not enabled, exit silently
+    exit 0
+fi
 
 # Determine AI provider (via environment variable or git config)
 PROVIDER="${GIT_COMMIT_PROVIDER:-$(git config --get hooks.commitProvider)}"
@@ -28,12 +36,14 @@ if [ -d "$(git rev-parse --git-dir)/rebase-merge" ] || [ -d "$(git rev-parse --g
     exit 0
 fi
 
-# Improve the last commit message
+# Improve the last commit message (always with backup, never with --skip-backup)
+# --skip-remote-consent is used because hooks run non-interactively
+# User must explicitly enable hook (opt-in) via git config
 echo "🤖 Improving commit message using $PROVIDER..."
 npx git-rewrite-commits \
     --provider "$PROVIDER" \
     --max-commits 1 \
-    --skip-backup \
+    --skip-remote-consent \
     --quiet \
     2>/dev/null || true
 

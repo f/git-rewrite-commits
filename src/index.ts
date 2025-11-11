@@ -21,6 +21,7 @@ export interface RewriteOptions {
   template?: string;
   language?: string;
   prompt?: string;
+  skipRemoteConsent?: boolean; // Skip consent prompt for remote API calls (not recommended)
 }
 
 export interface CommitInfo {
@@ -189,12 +190,78 @@ export class GitCommitRewriter {
     return { score, isWellFormed, reason };
   }
 
+  private async checkRemoteAPIConsent(): Promise<boolean> {
+    // Skip consent if using local Ollama provider
+    if (this.options.provider === 'ollama') {
+      return true;
+    }
+
+    // Skip consent if explicitly disabled (for hook usage)
+    if (this.options.skipRemoteConsent) {
+      return true;
+    }
+
+    console.log(chalk.yellow.bold('\n⚠️  Data Privacy Notice'));
+    console.log(chalk.yellow('This tool will send the following data to a remote AI provider:'));
+    console.log(chalk.yellow('  • List of changed files'));
+    console.log(chalk.yellow('  • Git diff content (up to 8KB per commit)'));
+    console.log(chalk.yellow(`  • Provider: ${this.options.provider}`));
+    console.log(chalk.yellow(`  • Model: ${this.options.model}`));
+    console.log(chalk.yellow('\nThis may include sensitive information such as:'));
+    console.log(chalk.yellow('  • Source code'));
+    console.log(chalk.yellow('  • Configuration files'));
+    console.log(chalk.yellow('  • Credentials or API keys in diffs'));
+    console.log(chalk.yellow('  • Proprietary or confidential data'));
+    
+    const consent = await this.askConfirmation('\nDo you consent to sending this data to the remote AI provider?');
+    
+    if (!consent) {
+      console.log(chalk.red('\n❌ Operation cancelled. No data was sent.'));
+      console.log(chalk.blue('💡 Tip: Use --provider ollama to process data locally without sending to remote servers.'));
+    }
+    
+    return consent;
+  }
+
+  private redactSensitivePatterns(text: string): string {
+    // Redact common sensitive patterns from diffs
+    let redacted = text;
+    
+    // Redact API keys and tokens (common patterns)
+    redacted = redacted.replace(/(['"])(sk-[a-zA-Z0-9]{32,}|sk_[a-zA-Z0-9_-]{32,})(['"])/g, '$1[REDACTED_API_KEY]$3');
+    redacted = redacted.replace(/(['"])(ghp_[a-zA-Z0-9]{36,}|ghs_[a-zA-Z0-9]{36,})(['"])/g, '$1[REDACTED_GITHUB_TOKEN]$3');
+    redacted = redacted.replace(/(['"])(xox[pboa]-[a-zA-Z0-9]{10,})(['"])/g, '$1[REDACTED_SLACK_TOKEN]$3');
+    
+    // Redact AWS credentials
+    redacted = redacted.replace(/(AKIA[0-9A-Z]{16})/g, '[REDACTED_AWS_KEY]');
+    redacted = redacted.replace(/(['"])([0-9a-zA-Z/+=]{40})(['"])/g, (match, q1, content, q2) => {
+      // Only redact if it looks like AWS secret key (base64-ish, 40 chars)
+      if (/^[A-Za-z0-9/+=]{40}$/.test(content)) {
+        return `${q1}[REDACTED_SECRET]${q2}`;
+      }
+      return match;
+    });
+    
+    // Redact private keys
+    redacted = redacted.replace(/-----BEGIN (RSA |DSA |EC )?PRIVATE KEY-----[\s\S]*?-----END (RSA |DSA |EC )?PRIVATE KEY-----/g, 
+      '[REDACTED_PRIVATE_KEY]');
+    
+    // Redact passwords in common formats
+    redacted = redacted.replace(/(password|passwd|pwd)[\s]*[=:][\s]*['"]([^'"]+)['"]/gi, 
+      '$1=[REDACTED_PASSWORD]');
+    
+    return redacted;
+  }
+
   private async generateCommitMessage(
     diff: string,
     files: string[],
     oldMessage: string
   ): Promise<string> {
     try {
+      // Redact sensitive data from diff before sending to AI provider
+      const redactedDiff = this.redactSensitivePatterns(diff);
+      
       let formatInstructions = '';
       
       if (this.options.template) {
@@ -231,8 +298,8 @@ Old commit message: "${oldMessage}"
 Files changed:
 ${files.join('\n')}
 
-Git diff (truncated if too long):
-${diff.substring(0, 8000)}
+Git diff (truncated if too long, sensitive data redacted):
+${redactedDiff.substring(0, 8000)}
 
 ${this.options.template ? `Format: ${this.options.template}` : ''}
 ${languageInstruction}
@@ -247,8 +314,8 @@ Old commit message: "${oldMessage}"
 Files changed:
 ${files.join('\n')}
 
-Git diff (truncated if too long):
-${diff.substring(0, 8000)}
+Git diff (truncated if too long, sensitive data redacted):
+${redactedDiff.substring(0, 8000)}
 
 Generate a commit message that:
 ${formatInstructions}
@@ -395,6 +462,12 @@ process.stdin.on('end', () => {
     // Check git repository
     this.checkGitRepository();
 
+    // Check for consent to send data to remote AI provider (if applicable)
+    const hasConsent = await this.checkRemoteAPIConsent();
+    if (!hasConsent) {
+      throw new Error('User declined to send data to remote AI provider');
+    }
+
     // Get staged changes
     const stagedFiles = this.execCommand('git diff --cached --name-only')
       .trim()
@@ -450,6 +523,12 @@ process.stdin.on('end', () => {
     if (commits.length === 0) {
       console.log(chalk.yellow('No commits found to process.'));
       return;
+    }
+
+    // Check for consent to send data to remote AI provider (if applicable)
+    const hasConsent = await this.checkRemoteAPIConsent();
+    if (!hasConsent) {
+      process.exit(0);
     }
 
     // Warning about rewriting history

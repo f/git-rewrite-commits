@@ -96,19 +96,29 @@ async function installGitHooks(): Promise<void> {
   // Configuration instructions
   if (installedCount > 0) {
     console.log(chalk.blue('\n💡 Next steps:'));
-    console.log('  1. Set up your AI provider:');
-    console.log(chalk.gray('     # For OpenAI:'));
+    console.log(chalk.yellow.bold('\n  ⚠️  IMPORTANT: Hooks are opt-in for security and privacy'));
+    console.log('  1. Enable hooks you want to use (REQUIRED):');
+    console.log(chalk.gray('     git config hooks.prepareCommitMsg true  # Enable prepare-commit-msg'));
+    console.log(chalk.gray('     git config hooks.postCommitRewrite true # Enable post-commit'));
+    console.log(chalk.yellow('     Note: These hooks send data to AI providers. Use Ollama for local processing.'));
+    
+    console.log('\n  2. Set up your AI provider:');
+    console.log(chalk.gray('     # For OpenAI (sends data to remote API):'));
     console.log(chalk.gray('     export OPENAI_API_KEY="your-api-key"'));
-    console.log(chalk.gray('     # For Ollama (install and run Ollama first):'));
+    console.log(chalk.gray('     # For Ollama (processes data locally):'));
     console.log(chalk.gray('     ollama pull llama3.2'));
     console.log(chalk.gray('     ollama serve'));
-    console.log('\n  2. Optional: Configure template and language:');
+    console.log(chalk.gray('     git config hooks.commitProvider ollama'));
+    
+    console.log('\n  3. Optional: Configure template and language:');
     console.log(chalk.gray('     git config hooks.commitTemplate "(feat): message"'));
     console.log(chalk.gray('     git config hooks.commitLanguage "en"'));
-    console.log('\n  3. Start committing! The hooks will work automatically.');
+    
+    console.log('\n  4. Start committing! Enabled hooks will work automatically.');
     
     if (installedCount === hooks.length) {
       console.log(chalk.green('\n✨ All hooks installed successfully!'));
+      console.log(chalk.yellow('Remember to enable them with git config (see step 1 above)'));
     }
   } else if (skippedCount === hooks.length) {
     console.log(chalk.yellow('\n⚠️  All hooks already installed. No changes made.'));
@@ -137,6 +147,7 @@ program
   .option('-l, --language <lang>', 'Language for commit messages (default: "en")', 'en')
   .option('-p, --prompt <text>', 'Custom prompt for AI message generation (overrides default instructions)')
   .option('--staged', 'Generate a message for staged changes (for git hooks)')
+  .option('--skip-remote-consent', 'Skip consent prompt for remote API calls (not recommended, use only in automated contexts)')
   .option('--install-hooks', 'Install git hooks to the current repository')
   .action(async (options) => {
     try {
@@ -180,6 +191,7 @@ program
         template: options.template,
         language: options.language,
         prompt: options.prompt,
+        skipRemoteConsent: options.skipRemoteConsent,
       });
 
       if (options.staged) {

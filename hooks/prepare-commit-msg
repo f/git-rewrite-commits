@@ -5,11 +5,16 @@
 # Installation:
 #   1. Copy this file to .git/hooks/prepare-commit-msg
 #   2. Make it executable: chmod +x .git/hooks/prepare-commit-msg
+#   3. Enable it: git config hooks.prepareCommitMsg true
 #
 # This hook will:
-# - Analyze your staged changes
+# - Analyze your staged changes (opt-in only)
 # - Generate an AI-powered commit message
 # - Insert it as the default message (you can edit before saving)
+#
+# ⚠️  PRIVACY NOTICE:
+# This hook sends your staged changes to an AI provider (OpenAI by default).
+# Use --provider ollama for local processing without remote API calls.
 
 COMMIT_MSG_FILE=$1
 COMMIT_SOURCE=$2
@@ -17,6 +22,19 @@ SHA1=$3
 
 # Only process for normal commits (not merge, squash, amend, etc.)
 if [ -z "$COMMIT_SOURCE" ]; then
+    # Check if prepare-commit-msg is enabled (opt-in required)
+    ENABLED=$(git config --get --type=bool hooks.prepareCommitMsg)
+    if [ "$ENABLED" != "true" ]; then
+        # Not enabled, add helpful hint
+        echo "# Tip: Enable AI commit messages with: git config hooks.prepareCommitMsg true" > "$COMMIT_MSG_FILE.tmp"
+        echo "# Or use Ollama locally: git config hooks.commitProvider ollama" >> "$COMMIT_MSG_FILE.tmp"
+        echo "# ⚠️  Note: This will send staged changes to an AI provider" >> "$COMMIT_MSG_FILE.tmp"
+        echo "" >> "$COMMIT_MSG_FILE.tmp"
+        cat "$COMMIT_MSG_FILE" >> "$COMMIT_MSG_FILE.tmp"
+        mv "$COMMIT_MSG_FILE.tmp" "$COMMIT_MSG_FILE"
+        exit 0
+    fi
+
     # Determine AI provider (via environment variable or git config)
     PROVIDER="${GIT_COMMIT_PROVIDER:-$(git config --get hooks.commitProvider)}"
     PROVIDER="${PROVIDER:-openai}"  # Default to OpenAI
@@ -37,23 +55,26 @@ if [ -z "$COMMIT_SOURCE" ]; then
         # Generate AI-powered commit message
         echo "🤖 Generating AI-powered commit message..." >&2
         
-        # Build command with provider and optional template and language
-        CMD="npx git-rewrite-commits --staged --provider $PROVIDER"
+        # Securely build arguments array to prevent shell injection
+        # Note: We do NOT use eval or string concatenation with user input
+        # --skip-remote-consent is used because hooks run non-interactively
+        # User must explicitly enable hook (opt-in) via git config
+        set -- npx git-rewrite-commits --staged --provider "$PROVIDER" --skip-remote-consent
         
         # Add template if configured (via environment variable or git config)
         TEMPLATE="${GIT_COMMIT_TEMPLATE:-$(git config --get hooks.commitTemplate)}"
         if [ -n "$TEMPLATE" ]; then
-            CMD="$CMD --template \"$TEMPLATE\""
+            set -- "$@" --template "$TEMPLATE"
         fi
         
         # Add language if configured (via environment variable or git config)
         LANGUAGE="${GIT_COMMIT_LANGUAGE:-$(git config --get hooks.commitLanguage)}"
         if [ -n "$LANGUAGE" ]; then
-            CMD="$CMD --language $LANGUAGE"
+            set -- "$@" --language "$LANGUAGE"
         fi
         
-        # Generate the message using the tool
-        AI_MESSAGE=$(eval "$CMD" 2>/dev/null)
+        # Generate the message using the tool with properly quoted arguments
+        AI_MESSAGE=$("$@" 2>/dev/null)
         
         if [ $? -eq 0 ] && [ -n "$AI_MESSAGE" ]; then
             # Success! Use the AI-generated message
