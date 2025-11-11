@@ -37,6 +37,7 @@ echo "🔍 Checking $unpushed unpushed commit(s) for quality..."
 echo ""
 
 # First, do a dry run to show what would change
+# Note: dry-run mode still requires consent check (not --skip-remote-consent)
 npx git-rewrite-commits --provider "$PROVIDER" --max-commits "$unpushed" --dry-run
 
 # Ask for confirmation
@@ -46,7 +47,9 @@ read -r answer < /dev/tty
 
 if [ "$answer" = "y" ] || [ "$answer" = "yes" ]; then
     echo "📝 Improving commit messages using $PROVIDER..."
-    npx git-rewrite-commits --provider "$PROVIDER" --max-commits "$unpushed" --skip-backup
+    # Always create backup, never use --skip-backup
+    # Consent is given interactively by answering 'y' above
+    npx git-rewrite-commits --provider "$PROVIDER" --max-commits "$unpushed"
     echo "✅ Commit messages improved! Continuing with push..."
 else
     echo "⏭️  Skipping improvements, continuing with original messages..."
