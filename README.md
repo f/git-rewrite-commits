@@ -28,6 +28,28 @@ Automatically rewrite your entire git commit history with better, conventional c
 > 
 > **Remember:** Rewriting history changes commit hashes and requires force-pushing, which can disrupt your team's workflow.
 
+## Security & Privacy
+
+🔒 **Important Privacy Notice**: When using remote AI providers (OpenAI), this tool sends your file lists and diffs to external APIs. 
+
+**Security Features:**
+- ✅ **Explicit consent required** before sending data to remote providers
+- ✅ **Automatic redaction** of API keys, passwords, and private keys
+- ✅ **Local processing option** via Ollama (no data leaves your machine)
+- ✅ **Opt-in hooks** - all hooks require explicit enabling via git config
+- ✅ **Secure argument handling** - prevents shell injection attacks
+- ✅ **Always creates backups** before history rewrites
+
+**Recommended for sensitive repositories:**
+```bash
+# Use local Ollama instead of remote APIs
+git config hooks.commitProvider ollama
+ollama pull llama3.2
+ollama serve
+```
+
+> 📖 See [SECURITY.md](SECURITY.md) for complete security documentation
+
 ## Features
 
 - **AI-Powered**: Uses OpenAI GPT or local models via Ollama to generate meaningful commit messages
@@ -61,20 +83,39 @@ npm install -g git-rewrite-commits
 
 ## Quick Hook Installation
 
-**One command to enable AI-powered commit messages:**
+**Step 1: Install hooks**
 
 ```bash
 npx git-rewrite-commits --install-hooks
 ```
 
-That's it! Now you get:
-- **Automatic AI messages** when you run `git commit`
-- **Post-commit improvement** after each commit
-- **Pre-push review** before pushing to remote
+**Step 2: Enable hooks (opt-in required for security):**
+
+```bash
+# Enable prepare-commit-msg (generates messages when you commit)
+git config hooks.prepareCommitMsg true
+
+# Enable post-commit (improves messages after commits) - optional
+git config hooks.postCommitRewrite true
+
+# For privacy: use local Ollama instead of remote OpenAI
+git config hooks.commitProvider ollama
+```
+
+**Step 3: Configure your AI provider:**
+
+```bash
+# Option A: OpenAI (sends data to remote API)
+export OPENAI_API_KEY="your-api-key"
+
+# Option B: Ollama (local processing, recommended for sensitive repos)
+ollama pull llama3.2
+ollama serve
+```
 
 > **See [QUICK_START.md](QUICK_START.md) for detailed setup guide**
 
-### Configure (Optional)
+### Additional Configuration (Optional)
 
 ```bash
 # Set your template format
@@ -88,15 +129,17 @@ git config hooks.commitLanguage "es"  # Spanish, French, etc.
 
 ### Automatic Post-Commit Hook (Fix commits as you work)
 
-Add to `.git/hooks/post-commit` to automatically improve your last commit message:
+Hooks are automatically installed with `npx git-rewrite-commits --install-hooks`. To enable:
 
 ```bash
-#!/bin/sh
-# Automatically improve the last commit message after each commit
-npx git-rewrite-commits --max-commits 1 --skip-backup --no-skip-well-formed
+# Enable post-commit hook (opt-in for security)
+git config hooks.postCommitRewrite true
+
+# Configure provider
+git config hooks.commitProvider ollama  # or use OpenAI with OPENAI_API_KEY
 ```
 
-Make it executable: `chmod +x .git/hooks/post-commit`
+Note: The installed post-commit hook always creates backups for safety
 
 **Or use our ready-made hook:** `cp hooks/post-commit .git/hooks/`
 
