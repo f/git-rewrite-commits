@@ -177,6 +177,27 @@ program
         prompt: options.prompt,
       });
 
+      // Validate API key for OpenAI
+      if (provider === 'openai') {
+        console.log(chalk.blue('🔑 Validating OpenAI API key...'));
+        try {
+          await rewriter.validateApiKey();
+          console.log(chalk.green('✅ API key validated successfully\n'));
+        } catch (error: any) {
+          if (error.status === 401 || error.message.includes('Invalid')) {
+            console.error(chalk.red('\n❌ Error: Invalid OpenAI API key!'));
+            console.error(chalk.cyan('Verify at: https://platform.openai.com/api-keys'));
+
+          } else {
+            console.error(chalk.red(`\n❌ Error: ${error.message}`));
+          }
+          if (options.verbose && error.stack) {
+            console.error(chalk.gray(error.stack));
+          }
+          process.exit(1);
+        }
+      }
+
       if (options.staged) {
         // Generate message for staged changes
         const message = await rewriter.generateForStaged();

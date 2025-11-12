@@ -9,6 +9,9 @@ export class OpenAIProvider implements AIProvider {
     if (!apiKey) {
       throw new Error('OpenAI API key is required');
     }
+    if (!apiKey.startsWith('sk-')) {
+      throw new Error('OpenAI API key should start with "sk-"');
+    }
     this.openai = new OpenAI({ apiKey });
     this.model = model;
   }
@@ -37,7 +40,16 @@ export class OpenAIProvider implements AIProvider {
 
     return message;
   }
-
+  async validateApiKey(): Promise<void> {
+    try {
+      await this.openai.models.list();
+    } catch (error: any) {
+      if (error.status === 401) {
+        throw new Error('Invalid OpenAI API key');
+      }
+      throw error;
+    }
+  }
   getName(): string {
     return `OpenAI (${this.model})`;
   }

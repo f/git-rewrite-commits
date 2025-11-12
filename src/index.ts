@@ -65,6 +65,13 @@ export class GitCommitRewriter {
     };
   }
 
+  public async validateApiKey(): Promise<void> {
+    // Only validate for OpenAI provider
+    if (this.options.provider === 'openai' && 'validateApiKey' in this.provider) {
+      await (this.provider as any).validateApiKey();
+    }
+  }
+
   private execCommand(command: string): string {
     try {
       return execSync(command, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
