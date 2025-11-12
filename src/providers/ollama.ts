@@ -1,6 +1,16 @@
 import fetch from 'node-fetch';
 import { AIProvider } from './types';
 
+interface OllamaChatResponse {
+  message?: {
+    content?: string;
+  };
+}
+
+interface OllamaTagsResponse {
+  models?: { name: string }[];
+}
+
 export class OllamaProvider implements AIProvider {
   private baseUrl: string;
   private model: string;
@@ -47,7 +57,7 @@ export class OllamaProvider implements AIProvider {
         throw new Error(`Ollama API error (${response.status}): ${errorText}`);
       }
 
-      const data = await response.json();
+      const data = await response.json() as OllamaChatResponse;
       const message = data.message?.content?.trim();
       
       if (!message) {
@@ -73,7 +83,7 @@ export class OllamaProvider implements AIProvider {
         throw new Error('Ollama server is not responding correctly');
       }
 
-      const data = await response.json();
+      const data = await response.json() as OllamaTagsResponse;
       const models = data.models || [];
       const modelNames = models.map((m: any) => m.name.split(':')[0]);
       
