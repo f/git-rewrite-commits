@@ -26,7 +26,7 @@ async function installGitHooks(): Promise<void> {
   // Get hooks directory paths
   const gitHooksDir = path.join(process.cwd(), '.git', 'hooks');
   const sourceHooksDir = path.join(__dirname, '..', 'hooks');
-  
+
   // Create hooks directory if it doesn't exist
   if (!fs.existsSync(gitHooksDir)) {
     fs.mkdirSync(gitHooksDir, { recursive: true });
@@ -101,7 +101,7 @@ async function installGitHooks(): Promise<void> {
     console.log(chalk.gray('     git config hooks.commitTemplate "(feat): message"'));
     console.log(chalk.gray('     git config hooks.commitLanguage "en"'));
     console.log('\n  3. Start committing! The hooks will work automatically.');
-    
+
     if (installedCount === hooks.length) {
       console.log(chalk.green('\n✨ All hooks installed successfully!'));
     }
@@ -144,7 +144,7 @@ program
       // Check for API key if using OpenAI
       const provider = options.provider || 'openai';
       const apiKey = options.apiKey || process.env.OPENAI_API_KEY;
-      
+
       if (provider === 'openai' && !apiKey) {
         console.error(chalk.red('\n❌ Error: OpenAI API key is required!'));
         console.error(chalk.yellow('\nPlease provide it using one of these methods:'));
@@ -154,7 +154,7 @@ program
         console.error(chalk.blue('\n💡 Tip: Use --provider ollama to use local models with Ollama instead'));
         process.exit(1);
       }
-      
+
       if (provider === 'ollama') {
         console.log(chalk.blue('ℹ️  Using Ollama provider at ' + (options.ollamaUrl || 'http://localhost:11434')));
         console.log(chalk.gray('   Make sure Ollama is running: ollama serve'));
@@ -187,7 +187,6 @@ program
           if (error.status === 401 || error.message.includes('Invalid')) {
             console.error(chalk.red('\n❌ Error: Invalid OpenAI API key!'));
             console.error(chalk.cyan('Verify at: https://platform.openai.com/api-keys'));
-
           } else {
             console.error(chalk.red(`\n❌ Error: ${error.message}`));
           }
