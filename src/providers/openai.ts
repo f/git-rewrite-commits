@@ -9,9 +9,6 @@ export class OpenAIProvider implements AIProvider {
     if (!apiKey) {
       throw new Error('OpenAI API key is required');
     }
-    if (!apiKey.startsWith('sk-')) {
-      throw new Error('OpenAI API key should start with "sk-"');
-    }
     this.openai = new OpenAI({ apiKey });
     this.model = model;
   }
