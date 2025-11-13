@@ -43,8 +43,9 @@ export class OpenAIProvider implements AIProvider {
     } catch (error: any) {
       if (error.status === 401) {
         throw new Error('Invalid OpenAI API key');
+      } else {
+        throw new Error(`Error validating OpenAI API key: (${error.status}) ${error.message}`);
       }
-      throw error;
     }
   }
   getName(): string {
