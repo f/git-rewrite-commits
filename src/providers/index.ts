@@ -1,10 +1,10 @@
-import { AIProvider, ProviderOptions } from './types';
-import { OpenAIProvider } from './openai';
-import { OllamaProvider } from './ollama';
+import { AIProvider, ProviderOptions } from './types.js';
+import { OpenAIProvider } from './openai.js';
+import { OllamaProvider } from './ollama.js';
 
-export { AIProvider } from './types';
-export { OpenAIProvider } from './openai';
-export { OllamaProvider } from './ollama';
+export { AIProvider } from './types.js';
+export { OpenAIProvider } from './openai.js';
+export { OllamaProvider } from './ollama.js';
 
 export function createProvider(options: ProviderOptions): AIProvider {
   const providerType = options.provider || 'openai';

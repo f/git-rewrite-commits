@@ -2,10 +2,15 @@
 
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { GitCommitRewriter } from './index';
+import { GitCommitRewriter } from './index.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const packageJson = JSON.parse(
   fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8')
