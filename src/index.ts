@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as readline from 'readline';
 import chalk from 'chalk';
 import ora from 'ora';
-import { AIProvider, createProvider } from './providers';
+import { AIProvider, createProvider } from './providers/index.js';
 
 export interface RewriteOptions {
   provider?: 'openai' | 'ollama';
