@@ -335,8 +335,8 @@ Return ONLY the commit message, nothing else. No explanations, just the message.
     // Initialize the counter file
     fs.writeFileSync(counterFile, '0');
 
-    // Create a Node.js filter script
-    const filterScript = path.join(process.cwd(), '.git', 'filter-msg.js');
+    // Create a Node.js filter script (use .cjs extension for CommonJS in ES module project)
+    const filterScript = path.join(process.cwd(), '.git', 'filter-msg.cjs');
     
     // Escape backslashes for use in JavaScript string literals
     const escapedMappingFile = mappingFile.replace(/\\/g, '\\\\');
