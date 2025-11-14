@@ -337,14 +337,19 @@ Return ONLY the commit message, nothing else. No explanations, just the message.
 
     // Create a Node.js filter script
     const filterScript = path.join(process.cwd(), '.git', 'filter-msg.js');
+    
+    // Escape backslashes for use in JavaScript string literals
+    const escapedMappingFile = mappingFile.replace(/\\/g, '\\\\');
+    const escapedCounterFile = counterFile.replace(/\\/g, '\\\\');
+    
     const scriptContent = `#!/usr/bin/env node
 const fs = require('fs');
 
 // Read the ordered messages array
-const messages = JSON.parse(fs.readFileSync('${mappingFile}', 'utf8'));
+const messages = JSON.parse(fs.readFileSync('${escapedMappingFile}', 'utf8'));
 
 // Read and update the counter
-const counterFile = '${counterFile}';
+const counterFile = '${escapedCounterFile}';
 let counter = parseInt(fs.readFileSync(counterFile, 'utf8'));
 const newMessage = messages[counter];
 fs.writeFileSync(counterFile, String(counter + 1));
@@ -368,7 +373,10 @@ process.stdin.on('end', () => {
     fs.writeFileSync(filterScript, scriptContent, { mode: 0o755 });
 
     try {
-      this.execCommand(`git filter-branch -f --msg-filter 'node ${filterScript}' HEAD`);
+      // Properly escape the filter script path for Windows paths with spaces
+      // Use double quotes around the entire msg-filter command
+      const escapedFilterScript = filterScript.replace(/\\/g, '/');
+      this.execCommand(`git filter-branch -f --msg-filter "node \\"${escapedFilterScript}\\"" HEAD`);
     } finally {
       // Clean up temporary files
       if (fs.existsSync(filterScript)) {
