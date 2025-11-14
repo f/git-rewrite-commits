@@ -1,5 +1,5 @@
 import fetch from 'node-fetch';
-import { AIProvider } from './types';
+import { AIProvider } from './types.js';
 
 interface OllamaChatResponse {
   message?: {
