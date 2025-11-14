@@ -15,7 +15,7 @@ export class OllamaProvider implements AIProvider {
   private baseUrl: string;
   private model: string;
 
-  constructor(model: string = 'llama3.2', baseUrl: string = 'http://localhost:11434') {
+  constructor(model: string = 'llama3.2', baseUrl: string = 'http://localhost:11436') {
     this.model = model;
     this.baseUrl = baseUrl.replace(/\/$/, ''); // Remove trailing slash if present
   }
