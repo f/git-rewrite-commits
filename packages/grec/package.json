@@ -1,6 +1,6 @@
 {
   "name": "grec",
-  "version": "0.5.0",
+  "version": "0.6.6",
   "description": "Short alias for git-rewrite-commits - AI-powered git commit message rewriter",
   "type": "module",
   "bin": {
