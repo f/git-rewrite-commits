@@ -1,37 +1,22 @@
-# Git Hook Examples
+# Git Hooks
 
-This directory contains example Git hooks that integrate `git-rewrite-commits` into your workflow.
+This directory contains AI-powered Git hooks that integrate `git-rewrite-commits` into your workflow.
 
 ## Available Hooks
 
-### 📝 post-commit
-Automatically improves your commit message right after you commit.
+### 🔍 pre-commit
+**Preview AI-generated commit message before committing!**
 
 **What it does:**
-- Runs after each `git commit`
-- Improves the message using AI
-- Works silently in the background
-- Skips well-formed messages
+- Shows a preview of the AI-generated message
+- Asks for confirmation before proceeding
+- Helps you decide if the message is good before committing
+- Can be skipped with `git commit --no-verify`
 
 **Installation:**
 ```bash
-cp hooks/post-commit .git/hooks/
-chmod +x .git/hooks/post-commit
-```
-
-### 🚀 pre-push
-Reviews and fixes commit messages before pushing to remote.
-
-**What it does:**
-- Runs before `git push`
-- Shows which commits need improvement
-- Asks for confirmation before changes
-- Only processes unpushed commits
-
-**Installation:**
-```bash
-cp hooks/pre-push .git/hooks/
-chmod +x .git/hooks/pre-push
+cp hooks/pre-commit .git/hooks/
+chmod +x .git/hooks/pre-commit
 ```
 
 ### ✏️ prepare-commit-msg
@@ -74,22 +59,31 @@ chmod +x .git/hooks/prepare-commit-msg
    git config hooks.commitProvider ollama
    ```
 
-3. **Install the hooks you want:**
+3. **Install the hooks:**
    ```bash
-   # Install all hooks
-   cp hooks/* .git/hooks/
-   chmod +x .git/hooks/*
+   # Using the built-in installer (recommended)
+   npx git-rewrite-commits --install-hooks
 
-   # Or install specific hooks
+   # Or manually copy specific hooks
+   cp hooks/pre-commit .git/hooks/
    cp hooks/prepare-commit-msg .git/hooks/
-   chmod +x .git/hooks/prepare-commit-msg
+   chmod +x .git/hooks/*
+   ```
+
+4. **Enable the hooks you want (required for security):**
+   ```bash
+   # Enable preview before commit
+   git config hooks.preCommitPreview true
+   
+   # Enable automatic message generation
+   git config hooks.prepareCommitMsg true
    ```
 
 ## Configuration
 
-### prepare-commit-msg Hook Configuration
+### Hooks Configuration
 
-You can configure the provider, template and language for generated messages:
+Both hooks share the same configuration for provider, template, and language:
 
 **Via Environment Variables:**
 ```bash
@@ -115,11 +109,9 @@ git config --global hooks.commitLanguage "en"
 ## Disable Hooks Temporarily
 
 ```bash
-# Skip hooks for one commit
+# Skip all hooks for one commit
 git commit --no-verify -m "your message"
 
-# or
-git push --no-verify
 ```
 
 ## Team Usage
@@ -134,6 +126,8 @@ For team projects, consider:
    
    # Team members can then install with:
    git config core.hooksPath .githooks
+   git config hooks.preCommitPreview true   # Enable preview
+   git config hooks.prepareCommitMsg true   # Enable generation
    ```
 
 2. **Using a git hooks manager:**
@@ -199,10 +193,13 @@ npx git-rewrite-commits --max-commits 5 --dry-run
 echo "Run 'git-rewrite-commits --max-commits 5' to apply"
 ```
 
-## Notes
+## Security Notes
 
+- Both hooks are **opt-in** - must be explicitly enabled via git config
+  - `git config hooks.preCommitPreview true` for preview hook
+  - `git config hooks.prepareCommitMsg true` for generation hook
+- .env files and secrets are **automatically redacted** before sending to AI providers
+- Use **Ollama** for local processing to avoid sending data to remote APIs
 - Hooks are **local** to each repository
-- They are **not** tracked by Git by default
-- Team members need to install them individually
+- Team members need to install and enable them individually
 - Always test hooks in a test repository first
-- Use `--dry-run` when testing new configurations
