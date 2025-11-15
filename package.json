@@ -1,6 +1,6 @@
 {
   "name": "git-rewrite-commits",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "AI-powered git commit message rewriter using OpenAI - rewrite your entire git history with better conventional commit messages",
   "type": "module",
   "main": "./dist/index.js",
