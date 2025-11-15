@@ -355,12 +355,13 @@
         <div class="hero">
             <h1>git-rewrite-commits</h1>
             <p class="tagline">AI-powered git commit message rewriter using GPT</p>
-            
             <div class="badges">
-                <div class="badge">⚡ Fast & Efficient</div>
                 <div class="badge">🤖 AI-Powered</div>
-                <div class="badge">🎯 Conventional Commits</div>
+                <div class="badge">🚀 One Command</div>
+                <div class="badge">🌐 Multi-language</div>
+                <div class="badge">🔒 Privacy-First</div>
                 <div class="badge">🛡️ Safe by Default</div>
+                <div class="badge">✨ Auto-Redaction</div>
             </div>
 
             <div class="install-command" onclick="copyToClipboard('npx git-rewrite-commits')">
@@ -441,6 +442,22 @@
                     Automatically creates backup branches. Dry-run mode to preview changes before applying.
                 </div>
             </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🔒</div>
+                <div class="feature-title">Privacy Protection</div>
+                <div class="feature-description">
+                    .env files completely hidden. API keys and passwords auto-redacted. Opt-in hooks for full control.
+                </div>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🏠</div>
+                <div class="feature-title">Local AI Option</div>
+                <div class="feature-description">
+                    Use Ollama for completely local processing. Your code never leaves your machine.
+                </div>
+            </div>
         </div>
 
         <div class="footer">
@@ -484,20 +501,21 @@
                 { type: 'output', text: '✅ Git repository detected', delay: 1000, class: 'success' },
                 { type: 'output', text: '', delay: 1200 },
                 { type: 'output', text: '📦 Installing git hooks...', delay: 1400, class: 'highlight' },
-                { type: 'output', text: '  ✅ prepare-commit-msg installed', delay: 1800, class: 'success' },
-                { type: 'output', text: '  ✅ post-commit installed', delay: 2200, class: 'success' },
-                { type: 'output', text: '  ✅ pre-push installed', delay: 2600, class: 'success' },
+                { type: 'output', text: '  ✅ pre-commit installed (preview)', delay: 1800, class: 'success' },
+                { type: 'output', text: '  ✅ prepare-commit-msg installed (auto-generate)', delay: 2200, class: 'success' },
+                { type: 'output', text: '', delay: 2400 },
+                { type: 'output', text: '🎉 Git hooks installed successfully!', delay: 2600, class: 'success' },
                 { type: 'output', text: '', delay: 2800 },
-                { type: 'output', text: '🎉 Git hooks installed successfully!', delay: 3000, class: 'success' },
+                { type: 'output', text: '⚠️  IMPORTANT: Hooks are opt-in for security', delay: 3000, class: 'warning' },
                 { type: 'output', text: '', delay: 3200 },
-                { type: 'output', text: 'You now have:', delay: 3400 },
-                { type: 'output', text: '  • AI-powered commit messages when you run `git commit`', delay: 3700 },
-                { type: 'output', text: '  • Automatic message improvement after each commit', delay: 4000 },
-                { type: 'output', text: '  • Pre-push review of unpushed commits', delay: 4300 },
-                { type: 'output', text: '', delay: 4500 },
-                { type: 'output', text: 'Configure with:', delay: 4700, class: 'highlight' },
-                { type: 'output', text: '  git config hooks.commitTemplate "[JIRA-XXX] feat: message"', delay: 5000 },
-                { type: 'output', text: '  git config hooks.commitLanguage "es"', delay: 5300 }
+                { type: 'output', text: 'Enable the hooks you want:', delay: 3400, class: 'highlight' },
+                { type: 'output', text: '  git config hooks.preCommitPreview true    # Preview before commit', delay: 3700 },
+                { type: 'output', text: '  git config hooks.prepareCommitMsg true    # Auto-generate messages', delay: 4000 },
+                { type: 'output', text: '', delay: 4200 },
+                { type: 'output', text: 'For privacy, use local AI:', delay: 4400, class: 'highlight' },
+                { type: 'output', text: '  git config hooks.commitProvider ollama', delay: 4700 },
+                { type: 'output', text: '', delay: 4900 },
+                { type: 'output', text: '🔒 Security: .env files hidden, secrets auto-redacted', delay: 5100, class: 'success' }
             ],
             staged: [
                 { type: 'command', text: 'git add src/auth.ts', delay: 0 },
