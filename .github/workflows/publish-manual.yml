@@ -38,22 +38,6 @@ jobs:
     - name: Build
       run: npm run build
     
-    - name: Update package versions
-      run: |
-        echo "Setting version to ${{ github.event.inputs.version }}"
-        
-        # Update main package version
-        npm version ${{ github.event.inputs.version }} --no-git-tag-version
-        
-        # Update grec package version if it exists
-        if [ -d "packages/grec" ]; then
-          cd packages/grec
-          npm version ${{ github.event.inputs.version }} --no-git-tag-version
-          # Update the git-rewrite-commits dependency to match
-          npm pkg set "dependencies.git-rewrite-commits=^${{ github.event.inputs.version }}"
-          cd ../..
-        fi
-    
     - name: Dry Run - Show what would be published
       if: ${{ github.event.inputs.dry_run == 'true' }}
       run: |
