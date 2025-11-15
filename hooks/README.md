@@ -2,6 +2,8 @@
 
 This directory contains AI-powered Git hooks that integrate `git-rewrite-commits` into your workflow.
 
+> ✅ **Full Windows Support**: Native .bat scripts for Windows, shell scripts for Unix/macOS/Linux
+
 ## Available Hooks
 
 ### 🔍 pre-commit
@@ -46,7 +48,11 @@ chmod +x .git/hooks/prepare-commit-msg
    
    **For OpenAI:**
    ```bash
+   # Unix/macOS/Linux
    export OPENAI_API_KEY="your-api-key-here"
+   
+   # Windows
+   set OPENAI_API_KEY="your-api-key-here"
    ```
    
    **For Ollama (local models):**
@@ -61,13 +67,17 @@ chmod +x .git/hooks/prepare-commit-msg
 
 3. **Install the hooks:**
    ```bash
-   # Using the built-in installer (recommended)
+   # Using the built-in installer (recommended - works on all platforms)
    npx git-rewrite-commits --install-hooks
 
-   # Or manually copy specific hooks
+   # Or manually install (Unix/macOS/Linux):
    cp hooks/pre-commit .git/hooks/
    cp hooks/prepare-commit-msg .git/hooks/
    chmod +x .git/hooks/*
+   
+   # Or manually install (Windows):
+   copy hooks\pre-commit.bat .git\hooks\pre-commit
+   copy hooks\prepare-commit-msg.bat .git\hooks\prepare-commit-msg
    ```
 
 4. **Enable the hooks you want (required for security):**
@@ -87,9 +97,15 @@ Both hooks share the same configuration for provider, template, and language:
 
 **Via Environment Variables:**
 ```bash
+# Unix/macOS/Linux
 export GIT_COMMIT_PROVIDER="ollama"  # or "openai"
 export GIT_COMMIT_TEMPLATE="[JIRA-XXX] feat: message"
 export GIT_COMMIT_LANGUAGE="es"
+
+# Windows
+set GIT_COMMIT_PROVIDER=ollama
+set GIT_COMMIT_TEMPLATE=[JIRA-XXX] feat: message
+set GIT_COMMIT_LANGUAGE=es
 ```
 
 **Via Git Config (per repository):**
