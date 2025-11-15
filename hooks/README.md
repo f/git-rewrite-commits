@@ -6,13 +6,18 @@ This directory contains AI-powered Git hooks that integrate `git-rewrite-commits
 
 ## Available Hooks
 
+> ℹ️ **Smart Hook Coordination**: The hooks work together intelligently:
+> - Both hooks share generated messages to avoid duplicates
+> - `prepare-commit-msg` skips when using `-m` flag
+> - Only one AI generation happens per commit
+
 ### 🔍 pre-commit
 **Preview AI-generated commit message before committing!**
 
 **What it does:**
 - Shows a preview of the AI-generated message
 - Asks for confirmation before proceeding
-- Helps you decide if the message is good before committing
+- Saves the message for `prepare-commit-msg` to reuse (prevents regeneration)
 - Can be skipped with `git commit --no-verify`
 
 **Installation:**
@@ -21,14 +26,15 @@ cp hooks/pre-commit .git/hooks/
 chmod +x .git/hooks/pre-commit
 ```
 
-### ✏️ prepare-commit-msg
-**AI-powered commit message generation for every commit!**
+### 🎯 prepare-commit-msg
+**Automatically generate AI-powered commit messages!**
 
 **What it does:**
-- Analyzes your staged changes
-- Generates a complete commit message using AI
-- Pre-fills the commit message editor
-- You can edit or replace before saving
+- Runs automatically when you commit without a message
+- Skips if you use `git commit -m "message"` (no conflict)
+- Reuses message from `pre-commit` if available (no duplicate generation)
+- Analyzes your staged changes only if needed
+- Inserts the AI message as default (you can edit before saving)
 
 **Installation:**
 ```bash

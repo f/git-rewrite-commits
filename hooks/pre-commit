@@ -91,12 +91,18 @@ if ! git diff --cached --quiet; then
         echo "${YELLOW}You can edit it in the commit editor if needed.${NC}"
         echo ""
         
+        # Save the generated message for prepare-commit-msg to use
+        # This prevents regenerating a different message
+        echo "$MESSAGE" > "${GIT_DIR:-.git}/.ai-commit-message.tmp"
+        
         # Ask user if they want to continue
         echo "Continue with commit? (y/n) "
         read answer < /dev/tty
         
         if [ "$answer" != "y" ] && [ "$answer" != "Y" ]; then
             echo "${RED}Commit cancelled.${NC}"
+            # Clean up temp file on cancel
+            rm -f "${GIT_DIR:-.git}/.ai-commit-message.tmp"
             exit 1
         fi
     else
