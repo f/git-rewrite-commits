@@ -54,15 +54,15 @@ export class GitCommitRewriter {
     });
     
     this.options = {
-      provider: provider,
-      model: options.model || (provider === 'ollama' ? 'llama3.2' : 'gpt-3.5-turbo'),
       dryRun: false,
       verbose: false,
       skipBackup: false,
       skipWellFormed: true,
       minQualityScore: 7,
       language: 'en',
-      ...options
+      ...options,
+      provider: provider,
+      model: options.model || (provider === 'ollama' ? 'llama3.2' : 'gpt-3.5-turbo'),
     };
   }
 
