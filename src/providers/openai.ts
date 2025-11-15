@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { AIProvider } from './types';
+import { AIProvider } from './types.js';
 
 export class OpenAIProvider implements AIProvider {
   private openai: OpenAI;
