@@ -37,6 +37,7 @@ export class GitCommitRewriter {
 
   constructor(options: RewriteOptions = {}) {
     const provider = options.provider || 'openai';
+    const model = options.model || (provider === 'ollama' ? 'llama3.2' : 'gpt-3.5-turbo');
     
     // Check for API key if using OpenAI
     if (provider === 'openai') {
@@ -49,7 +50,7 @@ export class GitCommitRewriter {
     this.provider = createProvider({
       provider: provider,
       apiKey: options.apiKey,
-      model: options.model || (provider === 'ollama' ? 'llama3.2' : 'gpt-3.5-turbo'),
+      model: model,
       ollamaUrl: options.ollamaUrl
     });
     
@@ -62,7 +63,7 @@ export class GitCommitRewriter {
       language: 'en',
       ...options,
       provider: provider,
-      model: options.model || (provider === 'ollama' ? 'llama3.2' : 'gpt-3.5-turbo'),
+      model: model,
     };
   }
 
