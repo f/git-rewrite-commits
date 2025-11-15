@@ -92,7 +92,7 @@ if ! git diff --cached --quiet; then
         echo ""
         
         # Ask user if they want to continue
-        echo -n "Continue with commit? (y/n) "
+        echo "Continue with commit? (y/n) "
         read answer < /dev/tty
         
         if [ "$answer" != "y" ] && [ "$answer" != "Y" ]; then
