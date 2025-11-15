@@ -87,8 +87,15 @@ if ! git diff --cached --quiet; then
         echo "${GREEN}$MESSAGE${NC}"
         echo "----------------------------------------"
         echo ""
-        echo "${CYAN}This message will be used when you complete the commit.${NC}"
-        echo "${YELLOW}You can edit it in the commit editor if needed.${NC}"
+        
+        # Check if user is using -m flag (we can detect via git command line)
+        if ps -o args= $PPID 2>/dev/null | grep -q ' -m '; then
+            echo "${CYAN}This will REPLACE your commit message when you confirm.${NC}"
+            echo "${YELLOW}Your original message will be replaced with the above.${NC}"
+        else
+            echo "${CYAN}This message will be used when you complete the commit.${NC}"
+            echo "${YELLOW}You can edit it in the commit editor if needed.${NC}"
+        fi
         echo ""
         
         # Save the generated message for prepare-commit-msg to use
