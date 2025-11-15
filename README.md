@@ -74,7 +74,7 @@ ollama serve
 ```bash
 npx git-rewrite-commits
 # or shorter:
-npx grc
+npx grec
 ```
 
 ### Global Installation
@@ -82,16 +82,16 @@ npx grc
 # Full command name
 npm install -g git-rewrite-commits
 
-# Or install the short alias (grc = git-rewrite-commits)
-npm install -g grc
+# Or install the short alias (grec = git-rewrite-commits)
+npm install -g grec
 
 # Both work identically:
 git-rewrite-commits --help
-grc --help  # Same thing, just shorter!
+grec --help  # Same thing, just shorter!
 ```
 
 > ✅ **Works on all platforms**: Windows, macOS, Linux  
-> 💡 **Tip**: `grc` is a shorter alias for `git-rewrite-commits` - use whichever you prefer!
+> 💡 **Tip**: `grec` is a shorter alias for `git-rewrite-commits` - use whichever you prefer!
 
 ## Quick Hook Installation
 
@@ -100,7 +100,7 @@ grc --help  # Same thing, just shorter!
 ```bash
 npx git-rewrite-commits --install-hooks
 # or with the short alias:
-npx grc --install-hooks
+npx grec --install-hooks
 ```
 
 > 💡 **Updates existing hooks**: If hooks already exist, they'll be updated to the latest version. Non-git-rewrite-commits hooks are backed up before replacement.
@@ -152,33 +152,33 @@ git config hooks.commitLanguage "es"  # Spanish, French, etc.
 # Using the full command name
 git-rewrite-commits [options]
 
-# Or using the short alias (grc)
-grc [options]
+# Or using the short alias (grec)
+grec [options]
 ```
 
 Common use cases:
 
 ```bash
 # Rewrite entire git history
-grc
+grec
 
 # Preview changes without applying (dry run)
-grc --dry-run
+grec --dry-run
 
 # Generate commit message for staged changes
-grc --staged
+grec --staged
 
 # Process only last 10 commits
-grc --max-commits 10
+grec --max-commits 10
 
 # Use custom AI model
-grc --model gpt-4
+grec --model gpt-4
 
 # Use local AI with Ollama
-grc --provider ollama
+grec --provider ollama
 
 # Install/update git hooks
-grc --install-hooks
+grec --install-hooks
 ```
 
 ## Real-World Examples
@@ -193,7 +193,7 @@ grc --install-hooks
 # Install the hooks (using either command)
 npx git-rewrite-commits --install-hooks
 # or
-npx grc --install-hooks
+npx grec --install-hooks
 
 # Enable them (opt-in for security)
 git config hooks.preCommitPreview true    # Preview before commit

@@ -1,14 +1,14 @@
-# grc - git-rewrite-commits (short alias)
+# grec - git-rewrite-commits (short alias)
 
 A short command alias for [git-rewrite-commits](https://www.npmjs.com/package/git-rewrite-commits) - AI-powered git commit message rewriter.
 
 ## Installation
 
 ```bash
-npm install -g grc
+npm install -g grec
 ```
 
-This will give you the `grc` command as a shorter alternative to `git-rewrite-commits`.
+This will give you the `grec` command as a shorter alternative to `git-rewrite-commits`.
 
 ## Usage
 
@@ -18,26 +18,26 @@ All commands work exactly the same as `git-rewrite-commits`, just shorter:
 
 ```bash
 # Rewrite commit history with AI
-grc
+grec
 
 # Preview changes (dry run)
-grc --dry-run
+grec --dry-run
 
 # Install git hooks
-grc --install-hooks
+grec --install-hooks
 
 # Generate message for staged changes
-grc --staged
+grec --staged
 
 # Use local AI with Ollama
-grc --provider ollama
+grec --provider ollama
 ```
 
 ### Complete usage
 
 ```bash
 # All options from git-rewrite-commits work:
-grc [options]
+grec [options]
 
 Options:
   -h, --help               Show help
@@ -60,10 +60,10 @@ Options:
   --skip-remote-consent   Skip consent prompt (for automation)
 ```
 
-## Why grc?
+## Why grec?
 
-- **Shorter to type**: `grc` vs `git-rewrite-commits`
-- **Easier to remember**: Git Rewrite Commits = GRC
+- **Shorter to type**: `grec` vs `git-rewrite-commits`
+- **Easier to remember**: Git Rewrite Commits = grec
 - **Same functionality**: 100% compatible, just an alias
 
 ## Documentation

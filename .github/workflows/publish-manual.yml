@@ -10,8 +10,8 @@ on:
         description: 'Publish main package (git-rewrite-commits)'
         type: boolean
         default: true
-      publish_grc:
-        description: 'Publish grc alias package'
+      publish_grec:
+        description: 'Publish grec alias package'
         type: boolean
         default: true
       dry_run:
@@ -45,9 +45,9 @@ jobs:
         # Update main package version
         npm version ${{ github.event.inputs.version }} --no-git-tag-version
         
-        # Update grc package version if it exists
-        if [ -d "packages/grc" ]; then
-          cd packages/grc
+        # Update grec package version if it exists
+        if [ -d "packages/grec" ]; then
+          cd packages/grec
           npm version ${{ github.event.inputs.version }} --no-git-tag-version
           # Update the git-rewrite-commits dependency to match
           npm pkg set "dependencies.git-rewrite-commits=^${{ github.event.inputs.version }}"
@@ -64,9 +64,9 @@ jobs:
           npm pack --dry-run
         fi
         echo ""
-        if [ "${{ github.event.inputs.publish_grc }}" = "true" ] && [ -d "packages/grc" ]; then
-          echo "📦 Alias package (grc):"
-          cd packages/grc
+        if [ "${{ github.event.inputs.publish_grec }}" = "true" ] && [ -d "packages/grec" ]; then
+          echo "📦 Alias package (grec):"
+          cd packages/grec
           npm pack --dry-run
         fi
     
@@ -77,7 +77,7 @@ jobs:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
     
     - name: Wait for main package availability
-      if: ${{ github.event.inputs.dry_run == 'false' && github.event.inputs.publish_main == 'true' && github.event.inputs.publish_grc == 'true' }}
+      if: ${{ github.event.inputs.dry_run == 'false' && github.event.inputs.publish_main == 'true' && github.event.inputs.publish_grec == 'true' }}
       run: |
         echo "Waiting for git-rewrite-commits@${{ github.event.inputs.version }} to be available..."
         for i in {1..30}; do
@@ -89,15 +89,15 @@ jobs:
           sleep 10
         done
     
-    - name: Publish grc alias package
-      if: ${{ github.event.inputs.dry_run == 'false' && github.event.inputs.publish_grc == 'true' }}
+    - name: Publish grec alias package
+      if: ${{ github.event.inputs.dry_run == 'false' && github.event.inputs.publish_grec == 'true' }}
       run: |
-        if [ -d "packages/grc" ]; then
-          cd packages/grc
+        if [ -d "packages/grec" ]; then
+          cd packages/grec
           npm publish --access public
-          echo "✅ Published grc package!"
+          echo "✅ Published grec package!"
         else
-          echo "⚠️ grc package directory not found, skipping"
+          echo "⚠️ grec package directory not found, skipping"
         fi
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -115,7 +115,7 @@ jobs:
           if [ "${{ github.event.inputs.publish_main }}" = "true" ]; then
             echo "✅ git-rewrite-commits@${{ github.event.inputs.version }} published"
           fi
-          if [ "${{ github.event.inputs.publish_grc }}" = "true" ]; then
-            echo "✅ grc@${{ github.event.inputs.version }} published"
+          if [ "${{ github.event.inputs.publish_grec }}" = "true" ]; then
+            echo "✅ grec@${{ github.event.inputs.version }} published"
           fi
         fi
