@@ -107,11 +107,18 @@ if not "%MESSAGE%"=="" (
     echo %YELLOW%You can edit it in the commit editor if needed.%NC%
     echo.
     
+    REM Save the generated message for prepare-commit-msg to use
+    REM This prevents regenerating a different message
+    if not defined GIT_DIR set GIT_DIR=.git
+    echo %MESSAGE%> "%GIT_DIR%\.ai-commit-message.tmp"
+    
     REM Ask user if they want to continue
     set /p "answer=Continue with commit? (y/n) "
     
     if /i not "!answer!"=="y" (
         echo %RED%Commit cancelled.%NC%
+        REM Clean up temp file on cancel
+        del /f /q "%GIT_DIR%\.ai-commit-message.tmp" 2>nul
         exit /b 1
     )
 ) else (
