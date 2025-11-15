@@ -20,8 +20,14 @@ set "COMMIT_MSG_FILE=%~1"
 set "COMMIT_SOURCE=%~2"
 set "SHA1=%~3"
 
-REM Only process for normal commits (not merge, squash, amend, etc.)
+REM Skip processing if:
+REM 1. It's not a normal commit (merge, squash, template, message, etc.)
+REM 2. User provided -m flag (COMMIT_SOURCE = "message")
+REM 3. Using commit template (COMMIT_SOURCE = "template")
 if not "%COMMIT_SOURCE%"=="" (
+    REM Clean up any temp message from pre-commit
+    if not defined GIT_DIR set GIT_DIR=.git
+    del /f /q "%GIT_DIR%\.ai-commit-message.tmp" 2>nul
     exit /b 0
 )
 
@@ -29,6 +35,9 @@ REM Check if prepare-commit-msg is enabled (opt-in required)
 for /f "tokens=*" %%i in ('git config --get --type^=bool hooks.prepareCommitMsg 2^>nul') do set ENABLED=%%i
 
 if not "%ENABLED%"=="true" (
+    REM Clean up any temp message from pre-commit
+    if not defined GIT_DIR set GIT_DIR=.git
+    del /f /q "%GIT_DIR%\.ai-commit-message.tmp" 2>nul
     REM Not enabled, add helpful hint
     (
         echo # Tip: Enable AI commit messages with: git config hooks.prepareCommitMsg true
@@ -68,6 +77,19 @@ if "%PROVIDER%"=="openai" (
 REM Check if there are staged changes
 git diff --cached --quiet
 if %ERRORLEVEL% NEQ 0 (
+    REM Check if pre-commit already generated a message
+    if not defined GIT_DIR set GIT_DIR=.git
+    set "TEMP_MSG_FILE=%GIT_DIR%\.ai-commit-message.tmp"
+    
+    if exist "%TEMP_MSG_FILE%" (
+        REM Use the message from pre-commit hook
+        echo ✨ Using AI message from pre-commit preview... >&2
+        set /p AI_MESSAGE=<"%TEMP_MSG_FILE%"
+        REM Clean up temp file
+        del /f /q "%TEMP_MSG_FILE%" 2>nul
+        goto write_message
+    )
+    
     REM Generate AI-powered commit message
     echo 🤖 Generating AI-powered commit message... >&2
     
@@ -106,6 +128,7 @@ if %ERRORLEVEL% NEQ 0 (
     set "AI_MESSAGE="
     for /f "delims=" %%i in ('%CMD% 2^>nul') do set "AI_MESSAGE=%%i"
     
+    :write_message
     if not "!AI_MESSAGE!"=="" (
         REM Success! Use the AI-generated message
         (

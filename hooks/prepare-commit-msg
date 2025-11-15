@@ -20,11 +20,23 @@ COMMIT_MSG_FILE=$1
 COMMIT_SOURCE=$2
 SHA1=$3
 
-# Only process for normal commits (not merge, squash, amend, etc.)
+# Skip processing if:
+# 1. It's not a normal commit (merge, squash, template, message, etc.)
+# 2. User provided -m flag (COMMIT_SOURCE = "message")
+# 3. Using commit template (COMMIT_SOURCE = "template")
+if [ -n "$COMMIT_SOURCE" ]; then
+    # Clean up any temp message from pre-commit
+    rm -f "${GIT_DIR:-.git}/.ai-commit-message.tmp"
+    exit 0
+fi
+
+# Only process for normal commits without -m flag
 if [ -z "$COMMIT_SOURCE" ]; then
     # Check if prepare-commit-msg is enabled (opt-in required)
     ENABLED=$(git config --get --type=bool hooks.prepareCommitMsg)
     if [ "$ENABLED" != "true" ]; then
+        # Clean up any temp message from pre-commit
+        rm -f "${GIT_DIR:-.git}/.ai-commit-message.tmp"
         # Not enabled, add helpful hint
         echo "# Tip: Enable AI commit messages with: git config hooks.prepareCommitMsg true" > "$COMMIT_MSG_FILE.tmp"
         echo "# Or use Ollama locally: git config hooks.commitProvider ollama" >> "$COMMIT_MSG_FILE.tmp"
@@ -52,35 +64,49 @@ if [ -z "$COMMIT_SOURCE" ]; then
 
     # Check if there are staged changes
     if ! git diff --cached --quiet; then
-        # Generate AI-powered commit message
-        echo "🤖 Generating AI-powered commit message..." >&2
+        # Check if pre-commit already generated a message
+        TEMP_MSG_FILE="${GIT_DIR:-.git}/.ai-commit-message.tmp"
         
-        # Securely build arguments array to prevent shell injection
-        # Note: We do NOT use eval or string concatenation with user input
-        # --skip-remote-consent is used because hooks run non-interactively
-        # User must explicitly enable hook (opt-in) via git config
-        
-        # Try to use locally installed version first, otherwise use npx
-        if command -v git-rewrite-commits >/dev/null 2>&1; then
-            set -- git-rewrite-commits --staged --provider "$PROVIDER" --skip-remote-consent
+        if [ -f "$TEMP_MSG_FILE" ]; then
+            # Use the message from pre-commit hook
+            echo "✨ Using AI message from pre-commit preview..." >&2
+            AI_MESSAGE=$(cat "$TEMP_MSG_FILE")
+            # Clean up temp file
+            rm -f "$TEMP_MSG_FILE"
         else
-            set -- npx git-rewrite-commits --staged --provider "$PROVIDER" --skip-remote-consent
+            # Generate AI-powered commit message
+            echo "🤖 Generating AI-powered commit message..." >&2
+            
+            # Securely build arguments array to prevent shell injection
+            # Note: We do NOT use eval or string concatenation with user input
+            # --skip-remote-consent is used because hooks run non-interactively
+            # User must explicitly enable hook (opt-in) via git config
+            
+            # Try to use locally installed version first, otherwise use npx
+            if command -v git-rewrite-commits >/dev/null 2>&1; then
+                set -- git-rewrite-commits --staged --provider "$PROVIDER" --skip-remote-consent
+            else
+                set -- npx git-rewrite-commits --staged --provider "$PROVIDER" --skip-remote-consent
+            fi
+            
+            # Add template if configured (via environment variable or git config)
+            TEMPLATE="${GIT_COMMIT_TEMPLATE:-$(git config --get hooks.commitTemplate)}"
+            if [ -n "$TEMPLATE" ]; then
+                set -- "$@" --template "$TEMPLATE"
+            fi
+            
+            # Add language if configured (via environment variable or git config)
+            LANGUAGE="${GIT_COMMIT_LANGUAGE:-$(git config --get hooks.commitLanguage)}"
+            if [ -n "$LANGUAGE" ]; then
+                set -- "$@" --language "$LANGUAGE"
+            fi
+            
+            # Generate the message using the tool with properly quoted arguments
+            AI_MESSAGE=$("$@" 2>/dev/null)
         fi
         
-        # Add template if configured (via environment variable or git config)
-        TEMPLATE="${GIT_COMMIT_TEMPLATE:-$(git config --get hooks.commitTemplate)}"
-        if [ -n "$TEMPLATE" ]; then
-            set -- "$@" --template "$TEMPLATE"
-        fi
-        
-        # Add language if configured (via environment variable or git config)
-        LANGUAGE="${GIT_COMMIT_LANGUAGE:-$(git config --get hooks.commitLanguage)}"
-        if [ -n "$LANGUAGE" ]; then
-            set -- "$@" --language "$LANGUAGE"
-        fi
-        
-        # Generate the message using the tool with properly quoted arguments
-        if AI_MESSAGE=$("$@" 2>/dev/null) && [ -n "$AI_MESSAGE" ]; then
+        # Use the AI message if we have one
+        if [ -n "$AI_MESSAGE" ]; then
             # Success! Use the AI-generated message
             cat > "$COMMIT_MSG_FILE" << EOF
 $AI_MESSAGE
