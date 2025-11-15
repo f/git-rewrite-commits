@@ -1,0 +1,42 @@
+{
+  "name": "grc",
+  "version": "0.5.0",
+  "description": "Short alias for git-rewrite-commits - AI-powered git commit message rewriter",
+  "type": "module",
+  "bin": {
+    "grc": "./cli.js"
+  },
+  "scripts": {},
+  "keywords": [
+    "git",
+    "commit",
+    "conventional-commits",
+    "openai",
+    "ai",
+    "rewrite",
+    "history",
+    "cli",
+    "grc",
+    "git-rewrite-commits",
+    "alias"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/f/git-rewrite-commits.git"
+  },
+  "bugs": {
+    "url": "https://github.com/f/git-rewrite-commits/issues"
+  },
+  "homepage": "https://github.com/f/git-rewrite-commits#readme",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "dependencies": {
+    "git-rewrite-commits": "^0.5.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

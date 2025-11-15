@@ -541,7 +541,7 @@ process.stdin.on('end', () => {
   }
 
   public async rewrite(): Promise<void> {
-    console.log(chalk.cyan.bold('\n🚀 Git Commit Message Rewriter with AI\n'));
+    console.log(chalk.cyan.bold('\n🚀 git-rewrite-commits\n'));
 
     // Check git repository
     this.checkGitRepository();

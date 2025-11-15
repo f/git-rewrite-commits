@@ -61,8 +61,50 @@ jobs:
     - name: Build
       run: npm run build
     
-    - name: Publish to npm
+    - name: Get version from tag
+      id: get_version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+    
+    - name: Update package versions
+      run: |
+        # Update main package version
+        npm version ${{ steps.get_version.outputs.VERSION }} --no-git-tag-version
+        
+        # Update grc package version and dependency if it exists
+        if [ -d "packages/grc" ]; then
+          cd packages/grc
+          npm version ${{ steps.get_version.outputs.VERSION }} --no-git-tag-version
+          # Update the git-rewrite-commits dependency to match
+          npm pkg set "dependencies.git-rewrite-commits=^${{ steps.get_version.outputs.VERSION }}"
+          echo "✅ Updated grc package version"
+        else
+          echo "⚠️ grc package not found, skipping"
+        fi
+    
+    - name: Publish main package to npm
       run: npm publish
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    
+    - name: Wait for main package to be available
+      if: ${{ hashFiles('packages/grc/package.json') != '' }}
+      run: |
+        echo "Waiting for git-rewrite-commits@${{ steps.get_version.outputs.VERSION }} to be available on npm..."
+        for i in {1..30}; do
+          if npm view git-rewrite-commits@${{ steps.get_version.outputs.VERSION }} version 2>/dev/null; then
+            echo "Package is now available!"
+            break
+          fi
+          echo "Waiting... (attempt $i/30)"
+          sleep 10
+        done
+    
+    - name: Publish grc alias package to npm
+      if: ${{ hashFiles('packages/grc/package.json') != '' }}
+      run: |
+        cd packages/grc
+        npm publish --access public
+        echo "✅ Published grc@${{ steps.get_version.outputs.VERSION }}"
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
