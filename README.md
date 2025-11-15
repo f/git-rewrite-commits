@@ -54,7 +54,7 @@ ollama serve
 
 - **AI-Powered**: Uses OpenAI GPT or local models via Ollama to generate meaningful commit messages
 - **Local AI Support**: Run completely offline with Ollama and local models
-- **One-Command Hook Setup**: Install git hooks instantly with `npx git-rewrite-commits --install-hooks`
+- **One-Command Hook Setup**: Install AI commit message hooks instantly with `npx git-rewrite-commits --install-hooks`
 - **Smart Detection**: Automatically skips well-formed commits (can be disabled)
 - **Quality Scoring**: Assesses commit quality and only fixes broken messages
 - **Custom Templates**: Define your own commit format with `--template`
@@ -83,20 +83,22 @@ npm install -g git-rewrite-commits
 
 ## Quick Hook Installation
 
-**Step 1: Install hooks**
+**Step 1: Install the AI commit message hooks**
 
 ```bash
 npx git-rewrite-commits --install-hooks
 ```
 
-**Step 2: Enable hooks (opt-in required for security):**
+**Step 2: Enable the hooks you want (opt-in required for security):**
 
 ```bash
-# Enable prepare-commit-msg (generates messages when you commit)
+# Option A: Enable message preview before commit
+git config hooks.preCommitPreview true
+
+# Option B: Enable automatic message generation
 git config hooks.prepareCommitMsg true
 
-# Enable post-commit (improves messages after commits) - optional
-git config hooks.postCommitRewrite true
+# Or enable both for the full experience!
 
 # For privacy: use local Ollama instead of remote OpenAI
 git config hooks.commitProvider ollama
@@ -127,28 +129,31 @@ git config hooks.commitLanguage "es"  # Spanish, French, etc.
 
 ## Real-World Examples
 
-### Automatic Post-Commit Hook (Fix commits as you work)
+### Automatic Commit Message Generation
 
-Hooks are automatically installed with `npx git-rewrite-commits --install-hooks`. To enable:
+**Two hooks available:**
+1. **pre-commit**: Shows a preview of the AI message before committing
+2. **prepare-commit-msg**: Automatically generates the message in the editor
 
 ```bash
-# Enable post-commit hook (opt-in for security)
-git config hooks.postCommitRewrite true
+# Install the hooks
+npx git-rewrite-commits --install-hooks
+
+# Enable them (opt-in for security)
+git config hooks.preCommitPreview true    # Preview before commit
+git config hooks.prepareCommitMsg true    # Auto-generate in editor
 
 # Configure provider
 git config hooks.commitProvider ollama  # or use OpenAI with OPENAI_API_KEY
 ```
 
-Note: The installed post-commit hook always creates backups for safety
+Now when you run `git commit`:
+- With pre-commit: You'll see a preview of the AI message first
+- With prepare-commit-msg: The AI message appears in your editor
 
-**Or use our ready-made hook:** `cp hooks/post-commit .git/hooks/`
-
-### Pre-Push Hook (Clean up before pushing)
-
-Add to `.git/hooks/pre-push` to fix commits before pushing:
+### Manual Rewriting for Existing Commits
 
 ```bash
-#!/bin/sh
 # Clean up the last 5 commits before pushing
 echo "🔧 Improving commit messages before push..."
 npx git-rewrite-commits --max-commits 5 --dry-run
@@ -241,7 +246,7 @@ git push --force-with-lease origin main
    ollama serve         # Start Ollama server
    ```
 
-2. **Install git hooks in your repository:**
+2. **Install the commit message hooks in your repository:**
    ```bash
    cd your-repo
    npx git-rewrite-commits --install-hooks
@@ -303,7 +308,7 @@ Options:
   -l, --language <lang>         Language for commit messages (default: "en")
   -p, --prompt <text>           Custom prompt for AI message generation
   --staged                      Generate a message for staged changes (for git hooks)
-  --install-hooks               Install git hooks to the current repository
+  --install-hooks               Install AI commit message hooks (pre-commit and prepare-commit-msg)
   -h, --help                    display help for command
 ```
 
@@ -351,7 +356,7 @@ npx git-rewrite-commits --prompt "Write a haiku-style commit message"
 npx git-rewrite-commits --prompt "Be extremely technical and detailed"
 npx git-rewrite-commits --prompt "Follow Linux kernel commit style"
 
-# Install git hooks to your repository
+# Install the AI commit message hooks to your repository
 npx git-rewrite-commits --install-hooks
 
 # Verbose mode for debugging
