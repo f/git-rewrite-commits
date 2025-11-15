@@ -28,6 +28,10 @@ async function installCommitHooks(): Promise<void> {
     process.exit(1);
   }
 
+  // Detect operating system
+  const isWindows = process.platform === 'win32';
+  const fileExtension = isWindows ? '.bat' : '';
+  
   // Get hooks directory paths
   const gitHooksDir = path.join(process.cwd(), '.git', 'hooks');
   const sourceHooksDir = path.join(__dirname, '..', 'hooks');
@@ -42,7 +46,7 @@ async function installCommitHooks(): Promise<void> {
     { name: 'prepare-commit-msg', description: 'Generate AI message automatically' }
   ];
 
-  console.log(chalk.blue('Available hooks:\n'));
+  console.log(chalk.blue(`Installing hooks for ${isWindows ? 'Windows' : 'Unix/macOS'}:\n`));
   hooks.forEach(hook => {
     console.log(`  • ${chalk.bold(hook.name)} - ${hook.description}`);
   });
@@ -52,7 +56,8 @@ async function installCommitHooks(): Promise<void> {
   let skippedCount = 0;
 
   for (const hook of hooks) {
-    const sourcePath = path.join(sourceHooksDir, hook.name);
+    const sourceFile = hook.name + fileExtension;
+    const sourcePath = path.join(sourceHooksDir, sourceFile);
     const targetPath = path.join(gitHooksDir, hook.name);
 
     // Check if source file exists
@@ -72,7 +77,12 @@ async function installCommitHooks(): Promise<void> {
     try {
       const content = fs.readFileSync(sourcePath, 'utf-8');
       fs.writeFileSync(targetPath, content);
-      fs.chmodSync(targetPath, 0o755); // Make executable
+      
+      // Make executable on Unix-like systems
+      if (!isWindows) {
+        fs.chmodSync(targetPath, 0o755);
+      }
+      
       console.log(chalk.green(`  ✓ ${hook.name} - installed`));
       installedCount++;
     } catch (error: any) {
@@ -98,7 +108,11 @@ async function installCommitHooks(): Promise<void> {
     
     console.log('\n2. Set up your AI provider:');
     console.log(chalk.gray('   # Option A: OpenAI (sends data to remote API)'));
-    console.log(chalk.gray('   export OPENAI_API_KEY="your-api-key"'));
+    if (isWindows) {
+      console.log(chalk.gray('   set OPENAI_API_KEY="your-api-key"'));
+    } else {
+      console.log(chalk.gray('   export OPENAI_API_KEY="your-api-key"'));
+    }
     console.log(chalk.gray('\n   # Option B: Ollama (processes data locally - recommended)'));
     console.log(chalk.gray('   ollama pull llama3.2'));
     console.log(chalk.gray('   ollama serve'));

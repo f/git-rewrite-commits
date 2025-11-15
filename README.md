@@ -52,6 +52,7 @@ ollama serve
 
 ## Features
 
+- **Cross-Platform**: Full support for Windows, macOS, and Linux
 - **AI-Powered**: Uses OpenAI GPT or local models via Ollama to generate meaningful commit messages
 - **Local AI Support**: Run completely offline with Ollama and local models
 - **One-Command Hook Setup**: Install AI commit message hooks instantly with `npx git-rewrite-commits --install-hooks`
@@ -69,15 +70,17 @@ ollama serve
 
 ## Installation
 
-You can run this tool directly with npx (no installation required):
-
+### Quick Start (No Installation Required)
 ```bash
 npx git-rewrite-commits
 ```
 
-Or install it globally:
-
+### Global Installation
 ```bash
+# Unix/macOS/Linux
+npm install -g git-rewrite-commits
+
+# Windows (PowerShell/CMD)
 npm install -g git-rewrite-commits
 ```
 
@@ -108,7 +111,8 @@ git config hooks.commitProvider ollama
 
 ```bash
 # Option A: OpenAI (sends data to remote API)
-export OPENAI_API_KEY="your-api-key"
+export OPENAI_API_KEY="your-api-key"  # Unix/macOS
+# set OPENAI_API_KEY="your-api-key"    # Windows
 
 # Option B: Ollama (local processing, recommended for sensitive repos)
 ollama pull llama3.2
