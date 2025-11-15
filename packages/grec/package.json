@@ -1,10 +1,10 @@
 {
-  "name": "grc",
+  "name": "grec",
   "version": "0.5.0",
   "description": "Short alias for git-rewrite-commits - AI-powered git commit message rewriter",
   "type": "module",
   "bin": {
-    "grc": "./cli.js"
+    "grec": "./cli.js"
   },
   "scripts": {},
   "keywords": [
@@ -16,7 +16,7 @@
     "rewrite",
     "history",
     "cli",
-    "grc",
+    "grec",
     "git-rewrite-commits",
     "alias"
   ],

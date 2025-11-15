@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# Script to publish the grc alias package to npm
+# Script to publish the grec alias package to npm
 
 set -e
 
-echo "📦 Publishing grc package (alias for git-rewrite-commits)"
+echo "📦 Publishing grec package (alias for git-rewrite-commits)"
 echo ""
 
 # Change to package directory
@@ -23,8 +23,8 @@ echo "Checking package..."
 npm pack --dry-run
 
 echo ""
-echo "Ready to publish grc package."
-echo "This will create a short 'grc' command alias for git-rewrite-commits."
+echo "Ready to publish grec package."
+echo "This will create a short 'grec' command alias for git-rewrite-commits."
 echo ""
 read -p "Continue with publish? (y/n) " -n 1 -r
 echo ""
@@ -32,13 +32,13 @@ echo ""
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     npm publish --access public
     echo ""
-    echo "✅ Successfully published grc package!"
+    echo "✅ Successfully published grec package!"
     echo ""
     echo "Users can now install with:"
-    echo "  npm install -g grc"
+    echo "  npm install -g grec"
     echo ""
     echo "And use the short command:"
-    echo "  grc --help"
+    echo "  grec --help"
 else
     echo "❌ Publish cancelled"
     exit 1

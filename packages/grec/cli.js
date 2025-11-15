@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// grc - Short alias for git-rewrite-commits
+// grec - Short alias for git-rewrite-commits
 // This package provides a shorter command name for git-rewrite-commits
 
 import { spawn } from 'child_process';

@@ -70,15 +70,15 @@ jobs:
         # Update main package version
         npm version ${{ steps.get_version.outputs.VERSION }} --no-git-tag-version
         
-        # Update grc package version and dependency if it exists
-        if [ -d "packages/grc" ]; then
-          cd packages/grc
+        # Update grec package version and dependency if it exists
+        if [ -d "packages/grec" ]; then
+          cd packages/grec
           npm version ${{ steps.get_version.outputs.VERSION }} --no-git-tag-version
           # Update the git-rewrite-commits dependency to match
           npm pkg set "dependencies.git-rewrite-commits=^${{ steps.get_version.outputs.VERSION }}"
-          echo "✅ Updated grc package version"
+          echo "✅ Updated grec package version"
         else
-          echo "⚠️ grc package not found, skipping"
+          echo "⚠️ grec package not found, skipping"
         fi
     
     - name: Publish main package to npm
@@ -87,7 +87,7 @@ jobs:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
     
     - name: Wait for main package to be available
-      if: ${{ hashFiles('packages/grc/package.json') != '' }}
+      if: ${{ hashFiles('packages/grec/package.json') != '' }}
       run: |
         echo "Waiting for git-rewrite-commits@${{ steps.get_version.outputs.VERSION }} to be available on npm..."
         for i in {1..30}; do
@@ -99,12 +99,12 @@ jobs:
           sleep 10
         done
     
-    - name: Publish grc alias package to npm
-      if: ${{ hashFiles('packages/grc/package.json') != '' }}
+    - name: Publish grec alias package to npm
+      if: ${{ hashFiles('packages/grec/package.json') != '' }}
       run: |
-        cd packages/grc
+        cd packages/grec
         npm publish --access public
-        echo "✅ Published grc@${{ steps.get_version.outputs.VERSION }}"
+        echo "✅ Published grec@${{ steps.get_version.outputs.VERSION }}"
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 

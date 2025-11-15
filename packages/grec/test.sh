@@ -1,13 +1,13 @@
 #!/bin/bash
 
-echo "Testing grc package locally"
+echo "Testing grec package locally"
 echo "==========================="
 echo ""
 
 # Save current directory
 ORIGINAL_DIR=$(pwd)
 
-# Go to grc package directory
+# Go to grec package directory
 cd "$(dirname "$0")"
 
 echo "1. Testing CLI wrapper..."
@@ -30,16 +30,16 @@ if [ -f "package.json" ]; then
     VERSION=$(node -p "require('./package.json').version")
     BIN=$(node -p "Object.keys(require('./package.json').bin || {})[0]")
     
-    if [ "$NAME" = "grc" ]; then
-        echo "   ✅ Package name is 'grc'"
+    if [ "$NAME" = "grec" ]; then
+        echo "   ✅ Package name is 'grec'"
     else
-        echo "   ❌ Package name is not 'grc'"
+        echo "   ❌ Package name is not 'grec'"
     fi
     
-    if [ "$BIN" = "grc" ]; then
-        echo "   ✅ Binary name is 'grc'"
+    if [ "$BIN" = "grec" ]; then
+        echo "   ✅ Binary name is 'grec'"
     else
-        echo "   ❌ Binary name is not 'grc'"
+        echo "   ❌ Binary name is not 'grec'"
     fi
     
     echo "   📦 Version: $VERSION"
@@ -64,10 +64,10 @@ echo "==========================="
 echo "✨ All tests passed! Package is ready."
 echo ""
 echo "To publish:"
-echo "  cd packages/grc && npm publish --access public"
+echo "  cd packages/grec && npm publish --access public"
 echo ""
 echo "Or from project root:"
-echo "  npm run publish:grc"
+echo "  npm run publish:grec"
 
 # Return to original directory
 cd "$ORIGINAL_DIR"
