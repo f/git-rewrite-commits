@@ -59,7 +59,13 @@ if [ -z "$COMMIT_SOURCE" ]; then
         # Note: We do NOT use eval or string concatenation with user input
         # --skip-remote-consent is used because hooks run non-interactively
         # User must explicitly enable hook (opt-in) via git config
-        set -- npx git-rewrite-commits --staged --provider "$PROVIDER" --skip-remote-consent
+        
+        # Try to use locally installed version first, otherwise use npx
+        if command -v git-rewrite-commits >/dev/null 2>&1; then
+            set -- git-rewrite-commits --staged --provider "$PROVIDER" --skip-remote-consent
+        else
+            set -- npx git-rewrite-commits --staged --provider "$PROVIDER" --skip-remote-consent
+        fi
         
         # Add template if configured (via environment variable or git config)
         TEMPLATE="${GIT_COMMIT_TEMPLATE:-$(git config --get hooks.commitTemplate)}"
