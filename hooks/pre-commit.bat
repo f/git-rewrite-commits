@@ -103,8 +103,16 @@ if not "%MESSAGE%"=="" (
     echo %GREEN%%MESSAGE%%NC%
     echo ----------------------------------------
     echo.
-    echo %CYAN%This message will be used when you complete the commit.%NC%
-    echo %YELLOW%You can edit it in the commit editor if needed.%NC%
+    
+    REM Check if using -m flag (check parent process command line)
+    wmic process where processid=%PPID% get commandline 2>nul | findstr /i " -m " >nul
+    if %ERRORLEVEL% EQU 0 (
+        echo %CYAN%This will REPLACE your commit message when you confirm.%NC%
+        echo %YELLOW%Your original message will be replaced with the above.%NC%
+    ) else (
+        echo %CYAN%This message will be used when you complete the commit.%NC%
+        echo %YELLOW%You can edit it in the commit editor if needed.%NC%
+    )
     echo.
     
     REM Save the generated message for prepare-commit-msg to use

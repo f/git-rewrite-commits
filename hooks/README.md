@@ -8,8 +8,24 @@ This directory contains AI-powered Git hooks that integrate `git-rewrite-commits
 
 > ℹ️ **Smart Hook Coordination**: The hooks work together intelligently:
 > - Both hooks share generated messages to avoid duplicates
-> - `prepare-commit-msg` skips when using `-m` flag
+> - **NEW**: Can replace bad `-m` messages when approved!
 > - Only one AI generation happens per commit
+> - `prepare-commit-msg` respects pre-commit decisions
+
+### Message Replacement Example
+```bash
+# You type:
+git commit -m "blabla"
+
+# pre-commit shows:
+🤖 AI Commit Message Preview
+Suggested commit message:
+fix(hooks): resolve coordination issue between pre-commit and prepare-commit-msg
+This will REPLACE your commit message when you confirm.
+Continue with commit? (y/n) y
+
+# Result: Your "blabla" is replaced with the AI message!
+```
 
 ### 🔍 pre-commit
 **Preview AI-generated commit message before committing!**
@@ -71,17 +87,25 @@ chmod +x .git/hooks/prepare-commit-msg
    git config hooks.commitProvider ollama
    ```
 
-3. **Install the hooks:**
+3. **Install or update the hooks:**
    ```bash
    # Using the built-in installer (recommended - works on all platforms)
    npx git-rewrite-commits --install-hooks
-
-   # Or manually install (Unix/macOS/Linux):
+   ```
+   
+   > **Auto-updates**: Running `--install-hooks` will update existing hooks to the latest version
+   > - Existing git-rewrite-commits hooks are replaced
+   > - Other hooks are backed up to `.backup-{timestamp}` before replacement
+   
+   **Manual installation (Unix/macOS/Linux):**
+   ```bash
    cp hooks/pre-commit .git/hooks/
    cp hooks/prepare-commit-msg .git/hooks/
    chmod +x .git/hooks/*
+   ```
    
-   # Or manually install (Windows):
+   **Manual installation (Windows):**
+   ```cmd
    copy hooks\pre-commit.bat .git\hooks\pre-commit
    copy hooks\prepare-commit-msg.bat .git\hooks\prepare-commit-msg
    ```

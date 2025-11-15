@@ -20,14 +20,46 @@ set "COMMIT_MSG_FILE=%~1"
 set "COMMIT_SOURCE=%~2"
 set "SHA1=%~3"
 
-REM Skip processing if:
-REM 1. It's not a normal commit (merge, squash, template, message, etc.)
-REM 2. User provided -m flag (COMMIT_SOURCE = "message")
-REM 3. Using commit template (COMMIT_SOURCE = "template")
+REM Check if pre-commit already generated a message that was approved
+if not defined GIT_DIR set GIT_DIR=.git
+set "TEMP_MSG_FILE=%GIT_DIR%\.ai-commit-message.tmp"
+
+REM Special handling for -m flag with pre-commit suggestion
+if "%COMMIT_SOURCE%"=="message" (
+    if exist "%TEMP_MSG_FILE%" (
+        REM User used -m but approved a better message in pre-commit
+        REM Save original message before replacing
+        set /p ORIGINAL_MSG=<"%COMMIT_MSG_FILE%" 2>nul
+        
+        REM Replace the -m message with the AI suggestion
+        set /p AI_MESSAGE=<"%TEMP_MSG_FILE%"
+        del /f /q "%TEMP_MSG_FILE%" 2>nul
+        
+        REM Override the original message with AI suggestion
+        (
+            echo !AI_MESSAGE!
+            echo.
+            echo # ✨ AI-improved commit message ^(replaced your original message^)
+            echo # Original was: !ORIGINAL_MSG!
+        ) > "%COMMIT_MSG_FILE%"
+        exit /b 0
+    )
+)
+
+REM Skip processing for other non-normal commits
+REM But NOT for "message" if we don't have a temp file
 if not "%COMMIT_SOURCE%"=="" (
-    REM Clean up any temp message from pre-commit
-    if not defined GIT_DIR set GIT_DIR=.git
-    del /f /q "%GIT_DIR%\.ai-commit-message.tmp" 2>nul
+    if not "%COMMIT_SOURCE%"=="message" (
+        REM Clean up any temp message from pre-commit
+        del /f /q "%TEMP_MSG_FILE%" 2>nul
+        exit /b 0
+    )
+)
+
+REM For normal commits or -m without pre-commit suggestion
+if "%COMMIT_SOURCE%"=="message" (
+    REM User provided -m and no pre-commit suggestion exists
+    REM Just use their message as-is
     exit /b 0
 )
 
@@ -78,9 +110,6 @@ REM Check if there are staged changes
 git diff --cached --quiet
 if %ERRORLEVEL% NEQ 0 (
     REM Check if pre-commit already generated a message
-    if not defined GIT_DIR set GIT_DIR=.git
-    set "TEMP_MSG_FILE=%GIT_DIR%\.ai-commit-message.tmp"
-    
     if exist "%TEMP_MSG_FILE%" (
         REM Use the message from pre-commit hook
         echo ✨ Using AI message from pre-commit preview... >&2

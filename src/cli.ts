@@ -53,7 +53,7 @@ async function installCommitHooks(): Promise<void> {
   console.log('');
 
   let installedCount = 0;
-  let skippedCount = 0;
+  let updatedCount = 0;
 
   for (const hook of hooks) {
     const sourceFile = hook.name + fileExtension;
@@ -68,13 +68,18 @@ async function installCommitHooks(): Promise<void> {
 
     // Check if hook already exists
     if (fs.existsSync(targetPath)) {
-      console.log(chalk.yellow(`  ⚠ ${hook.name} - already exists (skipped)`));
-      skippedCount++;
-      continue;
+      // Back up existing hook if it's not our hook
+      const existingContent = fs.readFileSync(targetPath, 'utf-8');
+      if (!existingContent.includes('git-rewrite-commits')) {
+        const backupPath = `${targetPath}.backup-${Date.now()}`;
+        fs.copyFileSync(targetPath, backupPath);
+        console.log(chalk.yellow(`  ⚠ ${hook.name} - backed up existing to ${path.basename(backupPath)}`));
+      }
     }
 
     // Copy hook file
     try {
+      const existedBefore = fs.existsSync(targetPath);
       const content = fs.readFileSync(sourcePath, 'utf-8');
       fs.writeFileSync(targetPath, content);
       
@@ -83,8 +88,13 @@ async function installCommitHooks(): Promise<void> {
         fs.chmodSync(targetPath, 0o755);
       }
       
-      console.log(chalk.green(`  ✓ ${hook.name} - installed`));
-      installedCount++;
+      if (existedBefore) {
+        console.log(chalk.green(`  ✓ ${hook.name} - updated`));
+        updatedCount++;
+      } else {
+        console.log(chalk.green(`  ✓ ${hook.name} - installed`));
+        installedCount++;
+      }
     } catch (error: any) {
       console.error(chalk.red(`  ✗ ${hook.name} - installation failed: ${error.message}`));
     }
@@ -92,13 +102,15 @@ async function installCommitHooks(): Promise<void> {
 
   // Summary
   console.log(chalk.cyan('\n📊 Summary:'));
-  console.log(chalk.green(`  ✓ Installed: ${installedCount} hook(s)`));
-  if (skippedCount > 0) {
-    console.log(chalk.yellow(`  ⚠ Skipped: ${skippedCount} hook(s) (already exist)`));
+  if (installedCount > 0) {
+    console.log(chalk.green(`  ✓ Installed: ${installedCount} new hook(s)`));
+  }
+  if (updatedCount > 0) {
+    console.log(chalk.blue(`  ↻ Updated: ${updatedCount} existing hook(s)`));
   }
 
   // Configuration instructions
-  if (installedCount > 0) {
+  if (installedCount > 0 || updatedCount > 0) {
     console.log(chalk.blue('\n💡 Setup Instructions:'));
     console.log(chalk.yellow.bold('\n⚠️  IMPORTANT: Hooks are opt-in for security and privacy'));
     
