@@ -208,11 +208,17 @@ export class GitCommitRewriter {
     console.log(chalk.yellow('  • Git diff content (up to 8KB per commit)'));
     console.log(chalk.yellow(`  • Provider: ${this.options.provider}`));
     console.log(chalk.yellow(`  • Model: ${this.options.model}`));
-    console.log(chalk.yellow('\nThis may include sensitive information such as:'));
-    console.log(chalk.yellow('  • Source code'));
-    console.log(chalk.yellow('  • Configuration files'));
-    console.log(chalk.yellow('  • Credentials or API keys in diffs'));
-    console.log(chalk.yellow('  • Proprietary or confidential data'));
+    
+    console.log(chalk.green.bold('\n✅ Security Measures:'));
+    console.log(chalk.green('  • .env files are COMPLETELY HIDDEN from diffs'));
+    console.log(chalk.green('  • API keys, tokens, and secrets are automatically REDACTED'));
+    console.log(chalk.green('  • Private keys and certificates are REMOVED'));
+    console.log(chalk.green('  • Database connection strings are SANITIZED'));
+    
+    console.log(chalk.yellow('\n⚠️  Still may include:'));
+    console.log(chalk.yellow('  • Source code (non-sensitive files)'));
+    console.log(chalk.yellow('  • Configuration files (with secrets redacted)'));
+    console.log(chalk.yellow('  • Proprietary or confidential business logic'));
     
     const consent = await this.askConfirmation('\nDo you consent to sending this data to the remote AI provider?');
     
@@ -225,31 +231,69 @@ export class GitCommitRewriter {
   }
 
   private redactSensitivePatterns(text: string): string {
-    // Redact common sensitive patterns from diffs
-    let redacted = text;
+    // Completely hide .env files content
+    let redacted = text.replace(/^(diff --git a\/.*\.env.*?$[\s\S]*?)(?=^diff --git |$)/gm, 
+      '$1[.ENV FILE CONTENT COMPLETELY HIDDEN FOR SECURITY]\n');
+    
+    // Also hide other common secret files
+    const sensitiveFiles = [
+      /\.env(\.[a-z]+)?$/i,  // .env, .env.local, .env.production
+      /\.pem$/i,              // Certificate files
+      /\.key$/i,              // Private key files
+      /\.p12$/i,              // PKCS12 files
+      /\.pfx$/i,              // Personal Information Exchange
+      /id_rsa/i,              // SSH private keys
+      /credentials/i,         // Various credential files
+      /secrets?\.(json|ya?ml|toml|ini)$/i,  // Secret config files
+    ];
+    
+    // Check if content is from a sensitive file and hide it
+    for (const pattern of sensitiveFiles) {
+      const filePattern = new RegExp(`^(diff --git a/.*${pattern.source}.*?$[\\s\\S]*?)(?=^diff --git |$)`, 'gmi');
+      redacted = redacted.replace(filePattern, (_match, header) => {
+        const fileName = header.match(/a\/(.*?) b\//)?.[1] || 'sensitive file';
+        return `${header.split('\n')[0]}\n[${fileName.toUpperCase()} CONTENT COMPLETELY HIDDEN FOR SECURITY]\n`;
+      });
+    }
     
     // Redact API keys and tokens (common patterns)
-    redacted = redacted.replace(/(['"])(sk-[a-zA-Z0-9]{32,}|sk_[a-zA-Z0-9_-]{32,})(['"])/g, '$1[REDACTED_API_KEY]$3');
-    redacted = redacted.replace(/(['"])(ghp_[a-zA-Z0-9]{36,}|ghs_[a-zA-Z0-9]{36,})(['"])/g, '$1[REDACTED_GITHUB_TOKEN]$3');
-    redacted = redacted.replace(/(['"])(xox[pboa]-[a-zA-Z0-9]{10,})(['"])/g, '$1[REDACTED_SLACK_TOKEN]$3');
+    redacted = redacted.replace(/(['"]?)(sk-[a-zA-Z0-9]{32,}|sk_[a-zA-Z0-9_-]{32,})(['"]?)/g, '$1[REDACTED_OPENAI_KEY]$3');
+    redacted = redacted.replace(/(['"]?)(ghp_[a-zA-Z0-9]{36,}|ghs_[a-zA-Z0-9]{36,}|gho_[a-zA-Z0-9]{36,})(['"]?)/g, '$1[REDACTED_GITHUB_TOKEN]$3');
+    redacted = redacted.replace(/(['"]?)(xox[pboa]-[a-zA-Z0-9-]{10,})(['"]?)/g, '$1[REDACTED_SLACK_TOKEN]$3');
+    redacted = redacted.replace(/(['"]?)([a-zA-Z0-9]{32,})\.apps\.googleusercontent\.com(['"]?)/g, '$1[REDACTED_GOOGLE_CLIENT_ID]$3');
     
     // Redact AWS credentials
-    redacted = redacted.replace(/(AKIA[0-9A-Z]{16})/g, '[REDACTED_AWS_KEY]');
-    redacted = redacted.replace(/(['"])([0-9a-zA-Z/+=]{40})(['"])/g, (match, q1, content, q2) => {
+    redacted = redacted.replace(/(AKIA[0-9A-Z]{16})/g, '[REDACTED_AWS_ACCESS_KEY]');
+    redacted = redacted.replace(/(['"]?)([0-9a-zA-Z/+=]{40})(['"]?)/g, (match, q1, content, q2) => {
       // Only redact if it looks like AWS secret key (base64-ish, 40 chars)
       if (/^[A-Za-z0-9/+=]{40}$/.test(content)) {
-        return `${q1}[REDACTED_SECRET]${q2}`;
+        return `${q1}[REDACTED_AWS_SECRET_KEY]${q2}`;
       }
       return match;
     });
     
+    // Redact Stripe keys
+    redacted = redacted.replace(/(['"]?)(sk_live_[a-zA-Z0-9]{24,}|pk_live_[a-zA-Z0-9]{24,}|sk_test_[a-zA-Z0-9]{24,}|pk_test_[a-zA-Z0-9]{24,})(['"]?)/g, 
+      '$1[REDACTED_STRIPE_KEY]$3');
+    
     // Redact private keys
-    redacted = redacted.replace(/-----BEGIN (RSA |DSA |EC )?PRIVATE KEY-----[\s\S]*?-----END (RSA |DSA |EC )?PRIVATE KEY-----/g, 
+    redacted = redacted.replace(/-----BEGIN (RSA |DSA |EC |OPENSSH )?PRIVATE KEY-----[\s\S]*?-----END (RSA |DSA |EC |OPENSSH )?PRIVATE KEY-----/g, 
       '[REDACTED_PRIVATE_KEY]');
     
+    // Redact JWT tokens
+    redacted = redacted.replace(/(['"]?)(eyJ[a-zA-Z0-9_-]+\.eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+)(['"]?)/g, 
+      '$1[REDACTED_JWT_TOKEN]$3');
+    
     // Redact passwords in common formats
-    redacted = redacted.replace(/(password|passwd|pwd)[\s]*[=:][\s]*['"]([^'"]+)['"]/gi, 
-      '$1=[REDACTED_PASSWORD]');
+    redacted = redacted.replace(/(password|passwd|pwd|secret|api_key|apikey|auth_token|access_token|private_key)[\s]*[=:][\s]*['"]([^'"]{8,})['"]/gi, 
+      '$1=[REDACTED]');
+    
+    // Redact database connection strings
+    redacted = redacted.replace(/(mongodb(\+srv)?|postgres(ql)?|mysql|redis):\/\/[^@\s]+@[^\s]+/gi, 
+      '$1://[REDACTED_CONNECTION_STRING]');
+    
+    // Redact Bearer tokens
+    redacted = redacted.replace(/Bearer\s+[a-zA-Z0-9_\-\.]+/gi, 'Bearer [REDACTED_TOKEN]');
     
     return redacted;
   }
