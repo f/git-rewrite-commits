@@ -1,0 +1,68 @@
+name: Sync Version After Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to sync (e.g., 1.0.0)'
+        required: true
+
+jobs:
+  sync-version:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        ref: main
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18.x'
+    
+    - name: Get version
+      id: get_version
+      run: |
+        if [ "${{ github.event_name }}" = "release" ]; then
+          # Extract version from release tag
+          VERSION=${GITHUB_REF#refs/tags/v}
+        else
+          # Use manual input
+          VERSION=${{ github.event.inputs.version }}
+        fi
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+    
+    - name: Update package versions
+      run: |
+        # Update main package version
+        npm version ${{ steps.get_version.outputs.VERSION }} --no-git-tag-version
+        
+        # Update grec package if it exists
+        if [ -d "packages/grec" ]; then
+          cd packages/grec
+          npm version ${{ steps.get_version.outputs.VERSION }} --no-git-tag-version
+          npm pkg set "dependencies.git-rewrite-commits=^${{ steps.get_version.outputs.VERSION }}"
+          cd ../..
+        fi
+    
+    - name: Commit version updates
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        
+        git add package.json package-lock.json
+        if [ -d "packages/grec" ]; then
+          git add packages/grec/package.json
+        fi
+        
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "chore: sync version to ${{ steps.get_version.outputs.VERSION }} [skip ci]"
+          git push
+          echo "✅ Version synced to ${{ steps.get_version.outputs.VERSION }}"
+        fi
