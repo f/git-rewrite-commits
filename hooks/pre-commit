@@ -1,0 +1,110 @@
+#!/bin/sh
+#
+# Pre-commit hook for git-rewrite-commits
+# This hook runs before a commit to optionally preview the AI-generated message
+#
+# Installation:
+#   cp hooks/pre-commit .git/hooks/
+#   chmod +x .git/hooks/pre-commit
+#   git config hooks.preCommitPreview true  # Enable preview
+#
+# Configuration:
+#   git config hooks.preCommitPreview true/false  # Enable/disable preview
+#   git config hooks.commitProvider ollama/openai  # Set AI provider
+#   git config hooks.commitTemplate "format"        # Set template
+#   git config hooks.commitLanguage "en"            # Set language
+#
+# ⚠️  PRIVACY NOTICE:
+# When enabled, this hook sends your staged changes to an AI provider (OpenAI by default).
+# Use --provider ollama for local processing without remote API calls.
+
+# Check if preview is enabled (opt-in required for security)
+PREVIEW_ENABLED=$(git config --get --type=bool hooks.preCommitPreview)
+
+# Exit silently if not enabled (opt-in for security)
+if [ "$PREVIEW_ENABLED" != "true" ]; then
+    exit 0
+fi
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+
+echo "${CYAN}🤖 AI Commit Message Preview${NC}"
+echo "${YELLOW}Analyzing staged changes...${NC}"
+echo ""
+
+# Check for staged changes
+if ! git diff --cached --quiet; then
+    # Determine AI provider (via environment variable or git config)
+    PROVIDER="${GIT_COMMIT_PROVIDER:-$(git config --get hooks.commitProvider)}"
+    PROVIDER="${PROVIDER:-openai}"  # Default to OpenAI
+    
+    # Check if provider is properly configured
+    if [ "$PROVIDER" = "openai" ] && [ -z "$OPENAI_API_KEY" ]; then
+        echo "${RED}Error: OPENAI_API_KEY not set${NC}"
+        echo "${YELLOW}Set it with: export OPENAI_API_KEY=\"your-api-key\"${NC}"
+        echo "${YELLOW}Or use Ollama: git config hooks.commitProvider ollama${NC}"
+        exit 0
+    fi
+    
+    # Try to use locally installed version first
+    if command -v git-rewrite-commits >/dev/null 2>&1; then
+        CMD="git-rewrite-commits"
+    else
+        CMD="npx git-rewrite-commits"
+    fi
+    
+    # Securely build arguments array to prevent shell injection
+    # Note: We do NOT use eval or string concatenation with user input
+    # --skip-remote-consent is used because hooks run non-interactively
+    # User must explicitly enable hook (opt-in) via git config
+    set -- "$CMD" --staged --provider "$PROVIDER" --skip-remote-consent
+    
+    # Add template if configured (via environment variable or git config)
+    TEMPLATE="${GIT_COMMIT_TEMPLATE:-$(git config --get hooks.commitTemplate)}"
+    if [ -n "$TEMPLATE" ]; then
+        set -- "$@" --template "$TEMPLATE"
+    fi
+    
+    # Add language if configured (via environment variable or git config)
+    LANGUAGE="${GIT_COMMIT_LANGUAGE:-$(git config --get hooks.commitLanguage)}"
+    LANGUAGE="${LANGUAGE:-en}"  # Default to English
+    if [ -n "$LANGUAGE" ]; then
+        set -- "$@" --language "$LANGUAGE"
+    fi
+    
+    echo "${BLUE}Suggested commit message:${NC}"
+    echo "----------------------------------------"
+    
+    # Generate and display the message using properly quoted arguments
+    MESSAGE=$("$@" 2>/dev/null)
+    
+    if [ $? -eq 0 ] && [ -n "$MESSAGE" ]; then
+        echo "${GREEN}$MESSAGE${NC}"
+        echo "----------------------------------------"
+        echo ""
+        echo "${CYAN}This message will be used when you complete the commit.${NC}"
+        echo "${YELLOW}You can edit it in the commit editor if needed.${NC}"
+        echo ""
+        
+        # Ask user if they want to continue
+        echo -n "Continue with commit? (y/n) "
+        read answer < /dev/tty
+        
+        if [ "$answer" != "y" ] && [ "$answer" != "Y" ]; then
+            echo "${RED}Commit cancelled.${NC}"
+            exit 1
+        fi
+    else
+        echo "${RED}Failed to generate preview. Continuing anyway...${NC}"
+    fi
+else
+    echo "${YELLOW}No staged changes found.${NC}"
+fi
+
+exit 0

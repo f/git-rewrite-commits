@@ -16,8 +16,8 @@ const packageJson = JSON.parse(
   fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8')
 );
 
-async function installGitHooks(): Promise<void> {
-  console.log(chalk.cyan.bold('\n🔧 Installing Git Hooks\n'));
+async function installCommitHooks(): Promise<void> {
+  console.log(chalk.cyan.bold('\n🎯 Installing AI Commit Message Hooks\n'));
 
   // Check if in a git repository
   try {
@@ -37,20 +37,17 @@ async function installGitHooks(): Promise<void> {
     fs.mkdirSync(gitHooksDir, { recursive: true });
   }
 
-  // Define available hooks
   const hooks = [
-    { name: 'prepare-commit-msg', description: 'AI-powered commit message generation' },
-    { name: 'post-commit', description: 'Automatic commit message improvement' },
-    { name: 'pre-push', description: 'Review and fix before pushing' }
+    { name: 'pre-commit', description: 'Preview AI message before committing' },
+    { name: 'prepare-commit-msg', description: 'Generate AI message automatically' }
   ];
 
   console.log(chalk.blue('Available hooks:\n'));
-  hooks.forEach((hook, i) => {
-    console.log(`  ${i + 1}. ${chalk.bold(hook.name)} - ${hook.description}`);
+  hooks.forEach(hook => {
+    console.log(`  • ${chalk.bold(hook.name)} - ${hook.description}`);
   });
+  console.log('');
 
-  // Install hooks
-  console.log(chalk.yellow('\nInstalling hooks...'));
   let installedCount = 0;
   let skippedCount = 0;
 
@@ -58,12 +55,9 @@ async function installGitHooks(): Promise<void> {
     const sourcePath = path.join(sourceHooksDir, hook.name);
     const targetPath = path.join(gitHooksDir, hook.name);
 
-    // Skip README file
-    if (hook.name === 'README.md') continue;
-
     // Check if source file exists
     if (!fs.existsSync(sourcePath)) {
-      console.log(chalk.red(`  ✗ ${hook.name} - source not found`));
+      console.error(chalk.red(`  ✗ ${hook.name} - source not found`));
       continue;
     }
 
@@ -82,7 +76,7 @@ async function installGitHooks(): Promise<void> {
       console.log(chalk.green(`  ✓ ${hook.name} - installed`));
       installedCount++;
     } catch (error: any) {
-      console.log(chalk.red(`  ✗ ${hook.name} - installation failed: ${error.message}`));
+      console.error(chalk.red(`  ✗ ${hook.name} - installation failed: ${error.message}`));
     }
   }
 
@@ -95,34 +89,26 @@ async function installGitHooks(): Promise<void> {
 
   // Configuration instructions
   if (installedCount > 0) {
-    console.log(chalk.blue('\n💡 Next steps:'));
-    console.log(chalk.yellow.bold('\n  ⚠️  IMPORTANT: Hooks are opt-in for security and privacy'));
-    console.log('  1. Enable hooks you want to use (REQUIRED):');
-    console.log(chalk.gray('     git config hooks.prepareCommitMsg true  # Enable prepare-commit-msg'));
-    console.log(chalk.gray('     git config hooks.postCommitRewrite true # Enable post-commit'));
-    console.log(chalk.yellow('     Note: These hooks send data to AI providers. Use Ollama for local processing.'));
+    console.log(chalk.blue('\n💡 Setup Instructions:'));
+    console.log(chalk.yellow.bold('\n⚠️  IMPORTANT: Hooks are opt-in for security and privacy'));
     
-    console.log('\n  2. Set up your AI provider:');
-    console.log(chalk.gray('     # For OpenAI (sends data to remote API):'));
-    console.log(chalk.gray('     export OPENAI_API_KEY="your-api-key"'));
-    console.log(chalk.gray('     # For Ollama (processes data locally):'));
-    console.log(chalk.gray('     ollama pull llama3.2'));
-    console.log(chalk.gray('     ollama serve'));
-    console.log(chalk.gray('     git config hooks.commitProvider ollama'));
+    console.log('\n1. Enable the hooks you want (REQUIRED):');
+    console.log(chalk.gray('   git config hooks.preCommitPreview true    # Enable preview before commit'));
+    console.log(chalk.gray('   git config hooks.prepareCommitMsg true    # Enable auto-generation'));
     
-    console.log('\n  3. Optional: Configure template and language:');
-    console.log(chalk.gray('     git config hooks.commitTemplate "(feat): message"'));
-    console.log(chalk.gray('     git config hooks.commitLanguage "en"'));
+    console.log('\n2. Set up your AI provider:');
+    console.log(chalk.gray('   # Option A: OpenAI (sends data to remote API)'));
+    console.log(chalk.gray('   export OPENAI_API_KEY="your-api-key"'));
+    console.log(chalk.gray('\n   # Option B: Ollama (processes data locally - recommended)'));
+    console.log(chalk.gray('   ollama pull llama3.2'));
+    console.log(chalk.gray('   ollama serve'));
+    console.log(chalk.gray('   git config hooks.commitProvider ollama'));
     
-    console.log('\n  4. Start committing! Enabled hooks will work automatically.');
+    console.log('\n3. Optional customizations:');
+    console.log(chalk.gray('   git config hooks.commitTemplate "type(scope): message"'));
+    console.log(chalk.gray('   git config hooks.commitLanguage "en"'));
     
-    if (installedCount === hooks.length) {
-      console.log(chalk.green('\n✨ All hooks installed successfully!'));
-      console.log(chalk.yellow('Remember to enable them with git config (see step 1 above)'));
-    }
-  } else if (skippedCount === hooks.length) {
-    console.log(chalk.yellow('\n⚠️  All hooks already installed. No changes made.'));
-    console.log(chalk.gray('To reinstall, remove existing hooks from .git/hooks/ first.'));
+    console.log(chalk.green('\n✨ You\'re all set! The hooks will work with your git commits.'));
   }
 }
 
@@ -148,12 +134,12 @@ program
   .option('-p, --prompt <text>', 'Custom prompt for AI message generation (overrides default instructions)')
   .option('--staged', 'Generate a message for staged changes (for git hooks)')
   .option('--skip-remote-consent', 'Skip consent prompt for remote API calls (not recommended, use only in automated contexts)')
-  .option('--install-hooks', 'Install git hooks to the current repository')
+  .option('--install-hooks', 'Install AI commit message hooks (pre-commit and prepare-commit-msg)')
   .action(async (options) => {
     try {
       // Handle --install-hooks option
       if (options.installHooks) {
-        await installGitHooks();
+        await installCommitHooks();
         process.exit(0);
       }
 
