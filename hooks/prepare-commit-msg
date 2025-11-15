@@ -26,18 +26,13 @@ TEMP_MSG_FILE="${GIT_DIR:-.git}/.ai-commit-message.tmp"
 # Special handling for -m flag with pre-commit suggestion
 if [ "$COMMIT_SOURCE" = "message" ] && [ -f "$TEMP_MSG_FILE" ]; then
     # User used -m but approved a better message in pre-commit
-    # Save original message before replacing
-    ORIGINAL_MSG=$(head -n 1 "$COMMIT_MSG_FILE" 2>/dev/null)
-    
     # Replace the -m message with the AI suggestion
     AI_MESSAGE=$(cat "$TEMP_MSG_FILE")
     rm -f "$TEMP_MSG_FILE"
     
     # Override the original message with AI suggestion
+    # Note: Don't add comment lines as they won't be stripped with -m flag
     echo "$AI_MESSAGE" > "$COMMIT_MSG_FILE"
-    echo "" >> "$COMMIT_MSG_FILE"
-    echo "# ✨ AI-improved commit message (replaced your original message)" >> "$COMMIT_MSG_FILE"
-    echo "# Original was: $ORIGINAL_MSG" >> "$COMMIT_MSG_FILE"
     exit 0
 fi
 

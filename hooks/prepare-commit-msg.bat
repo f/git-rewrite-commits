@@ -28,20 +28,13 @@ REM Special handling for -m flag with pre-commit suggestion
 if "%COMMIT_SOURCE%"=="message" (
     if exist "%TEMP_MSG_FILE%" (
         REM User used -m but approved a better message in pre-commit
-        REM Save original message before replacing
-        set /p ORIGINAL_MSG=<"%COMMIT_MSG_FILE%" 2>nul
-        
         REM Replace the -m message with the AI suggestion
         set /p AI_MESSAGE=<"%TEMP_MSG_FILE%"
         del /f /q "%TEMP_MSG_FILE%" 2>nul
         
         REM Override the original message with AI suggestion
-        (
-            echo !AI_MESSAGE!
-            echo.
-            echo # ✨ AI-improved commit message ^(replaced your original message^)
-            echo # Original was: !ORIGINAL_MSG!
-        ) > "%COMMIT_MSG_FILE%"
+        REM Note: Don't add comment lines as they won't be stripped with -m flag
+        echo !AI_MESSAGE!> "%COMMIT_MSG_FILE%"
         exit /b 0
     )
 )
