@@ -73,16 +73,25 @@ ollama serve
 ### Quick Start (No Installation Required)
 ```bash
 npx git-rewrite-commits
+# or shorter:
+npx grc
 ```
 
 ### Global Installation
 ```bash
-# Unix/macOS/Linux
+# Full command name
 npm install -g git-rewrite-commits
 
-# Windows (PowerShell/CMD)
-npm install -g git-rewrite-commits
+# Or install the short alias (grc = git-rewrite-commits)
+npm install -g grc
+
+# Both work identically:
+git-rewrite-commits --help
+grc --help  # Same thing, just shorter!
 ```
+
+> ✅ **Works on all platforms**: Windows, macOS, Linux  
+> 💡 **Tip**: `grc` is a shorter alias for `git-rewrite-commits` - use whichever you prefer!
 
 ## Quick Hook Installation
 
@@ -90,6 +99,8 @@ npm install -g git-rewrite-commits
 
 ```bash
 npx git-rewrite-commits --install-hooks
+# or with the short alias:
+npx grc --install-hooks
 ```
 
 > 💡 **Updates existing hooks**: If hooks already exist, they'll be updated to the latest version. Non-git-rewrite-commits hooks are backed up before replacement.
@@ -133,6 +144,43 @@ git config hooks.commitTemplate "[JIRA-XXX] feat: message"
 git config hooks.commitLanguage "es"  # Spanish, French, etc.
 ```
 
+## Usage
+
+### Command Examples
+
+```bash
+# Using the full command name
+git-rewrite-commits [options]
+
+# Or using the short alias (grc)
+grc [options]
+```
+
+Common use cases:
+
+```bash
+# Rewrite entire git history
+grc
+
+# Preview changes without applying (dry run)
+grc --dry-run
+
+# Generate commit message for staged changes
+grc --staged
+
+# Process only last 10 commits
+grc --max-commits 10
+
+# Use custom AI model
+grc --model gpt-4
+
+# Use local AI with Ollama
+grc --provider ollama
+
+# Install/update git hooks
+grc --install-hooks
+```
+
 ## Real-World Examples
 
 ### Automatic Commit Message Generation
@@ -142,8 +190,10 @@ git config hooks.commitLanguage "es"  # Spanish, French, etc.
 2. **prepare-commit-msg**: Automatically generate or use approved messages
 
 ```bash
-# Install the hooks
+# Install the hooks (using either command)
 npx git-rewrite-commits --install-hooks
+# or
+npx grc --install-hooks
 
 # Enable them (opt-in for security)
 git config hooks.preCommitPreview true    # Preview before commit
@@ -167,8 +217,6 @@ npx git-rewrite-commits --max-commits 5 --dry-run
 echo "Apply changes? (y/n)"
 read answer
 if [ "$answer" = "y" ]; then
-    npx git-rewrite-commits --max-commits 5
-fi
 ```
 
 ### Alias for Quick Fixes

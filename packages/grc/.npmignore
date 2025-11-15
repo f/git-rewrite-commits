@@ -1,0 +1,33 @@
+# Development files
+*.ts
+tsconfig.json
+.gitignore
+
+# Test files
+test/
+*.test.js
+*.spec.js
+
+# Build files
+src/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+
+# Dependencies
+node_modules/
+
+# Misc
+.env
+.env.*
+*.backup
+*.tmp
