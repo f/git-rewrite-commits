@@ -44,31 +44,32 @@ Automatically rewrite your entire git commit history with better, conventional c
 ```bash
 # Use local Ollama instead of remote APIs
 git config hooks.commitProvider ollama
-ollama pull llama3.2
+git config hooks.providerModel gemma3
+
+ollama pull gemma3
 ollama serve
 ```
 
 > 📖 See [SECURITY.md](SECURITY.md) for complete security documentation
 
 ## Features
-
-- **🤖 AI-powered commit message generation** using OpenAI GPT or local Ollama models
-- **♻️ Rewrite entire git history** with better commit messages
-- **📝 Conventional commits** format (feat, fix, chore, etc.)
-- **🌍 Multi-language support** - generate commits in any language
-- **🎯 Smart filtering** - skip already well-formed commits
-- **🔒 Local AI option** with Ollama - no data leaves your machine
-- **🪝 Git hooks integration** - automatic AI messages on every commit
-- **💡 Intelligent analysis** of code changes to generate meaningful messages
-- **📦 Batch processing** with rate limiting
-- **🔄 Safe operation** with automatic backup branches
-- **🎨 Custom templates** for team-specific formats
-- **✨ Quality scoring** to identify commits that need improvement
-- **🔍 Verbose mode** with diff preview and detailed processing information
-- **🎭 Custom prompts** - Override AI behavior with `--prompt` for unique styles
-- **🏃 Efficient processing** - Process only the last N commits with `--max-commits`
-- **👀 Dry-run mode** - Preview changes before applying them
-- **📊 Progress tracking** - Real-time progress indicators with colored output
+- **AI-powered commit message generation** using OpenAI GPT or local Ollama models
+- **Rewrite entire git history** with better commit messages
+- **Conventional commits** format (feat, fix, chore, etc.)
+- **Multi-language support** - generate commits in any language
+- **Smart filtering** - skip already well-formed commits
+- **Local AI option** with Ollama - no data leaves your machine
+- **Git hooks integration** - automatic AI messages on every commit
+- **Intelligent analysis** of code changes to generate meaningful messages
+- **Batch processing** with rate limiting
+- **Safe operation** with automatic backup branches
+- **Custom templates** for team-specific formats
+- **Quality scoring** to identify commits that need improvement
+- **Verbose mode** with diff preview and detailed processing information
+- **Custom prompts** - Override AI behavior with `--prompt` for unique styles
+- **Efficient processing** - Process only the last N commits with `--max-commits`
+- **Dry-run mode** - Preview changes before applying them
+- **Progress tracking** - Real-time progress indicators with colored output
 
 ## Installation
 
