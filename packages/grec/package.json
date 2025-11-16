@@ -1,6 +1,6 @@
 {
   "name": "grec",
-  "version": "0.6.92",
+  "version": "0.7.0",
   "description": "Short alias for git-rewrite-commits - AI-powered git commit message rewriter",
   "type": "module",
   "bin": {
@@ -34,7 +34,7 @@
     "node": ">=16.0.0"
   },
   "dependencies": {
-    "git-rewrite-commits": "^0.6.92"
+    "git-rewrite-commits": "^0.7.0"
   },
   "publishConfig": {
     "access": "public"
