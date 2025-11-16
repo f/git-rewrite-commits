@@ -8,7 +8,8 @@ REM   git config hooks.preCommitPreview true
 REM
 REM Configuration:
 REM   git config hooks.preCommitPreview true/false    - Enable/disable preview
-REM   git config hooks.commitProvider ollama/openai   - Set AI provider  
+REM   git config hooks.commitProvider ollama/openai   - Set AI provider
+REM   git config hooks.providerModel "gpt-4"           - Set model
 REM   git config hooks.commitTemplate "format"         - Set template
 REM   git config hooks.commitLanguage "en"             - Set language
 REM
@@ -70,6 +71,17 @@ REM Check if globally installed
 where git-rewrite-commits >nul 2>nul
 if %ERRORLEVEL% EQU 0 (
     set "CMD=git-rewrite-commits --staged --provider %PROVIDER% --skip-remote-consent"
+)
+
+REM Add model if configured
+set "MODEL="
+if defined GIT_COMMIT_MODEL (
+    set "MODEL=%GIT_COMMIT_MODEL%"
+) else (
+    for /f "tokens=*" %%i in ('git config --get hooks.providerModel 2^>nul') do set "MODEL=%%i"
+)
+if not "%MODEL%"=="" (
+    set CMD=%CMD% --model "%MODEL%"
 )
 
 REM Add template if configured

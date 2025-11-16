@@ -129,11 +129,13 @@ Both hooks share the same configuration for provider, template, and language:
 ```bash
 # Unix/macOS/Linux
 export GIT_COMMIT_PROVIDER="ollama"  # or "openai"
+export GIT_COMMIT_MODEL="gpt-4"  # or "llama3.2"
 export GIT_COMMIT_TEMPLATE="[JIRA-XXX] feat: message"
 export GIT_COMMIT_LANGUAGE="es"
 
 # Windows
 set GIT_COMMIT_PROVIDER=ollama
+set GIT_COMMIT_MODEL=gpt-4
 set GIT_COMMIT_TEMPLATE=[JIRA-XXX] feat: message
 set GIT_COMMIT_LANGUAGE=es
 ```
@@ -141,6 +143,7 @@ set GIT_COMMIT_LANGUAGE=es
 **Via Git Config (per repository):**
 ```bash
 git config hooks.commitProvider "ollama"  # or "openai"
+git config hooks.providerModel "gpt-4"  # or "llama3.2", etc
 git config hooks.commitTemplate "[JIRA-XXX] feat: message"
 git config hooks.commitLanguage "es"
 ```
@@ -148,6 +151,7 @@ git config hooks.commitLanguage "es"
 **Via Git Config (global):**
 ```bash
 git config --global hooks.commitProvider "openai"
+git config --global hooks.providerModel "gpt-4"
 git config --global hooks.commitTemplate "feat(scope): message"
 git config --global hooks.commitLanguage "en"
 ```

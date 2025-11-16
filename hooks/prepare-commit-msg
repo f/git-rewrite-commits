@@ -108,6 +108,12 @@ if [ -z "$COMMIT_SOURCE" ]; then
                 set -- npx git-rewrite-commits --staged --provider "$PROVIDER" --skip-remote-consent
             fi
             
+            # Add model if configured (via environment variable or git config)
+            MODEL="${GIT_COMMIT_MODEL:-$(git config --get hooks.providerModel)}"
+            if [ -n "$MODEL" ]; then
+                set -- "$@" --model "$MODEL"
+            fi
+            
             # Add template if configured (via environment variable or git config)
             TEMPLATE="${GIT_COMMIT_TEMPLATE:-$(git config --get hooks.commitTemplate)}"
             if [ -n "$TEMPLATE" ]; then

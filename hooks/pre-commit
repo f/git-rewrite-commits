@@ -11,6 +11,7 @@
 # Configuration:
 #   git config hooks.preCommitPreview true/false  # Enable/disable preview
 #   git config hooks.commitProvider ollama/openai  # Set AI provider
+#   git config hooks.providerModel "gpt-4"          # Set model
 #   git config hooks.commitTemplate "format"        # Set template
 #   git config hooks.commitLanguage "en"            # Set language
 #
@@ -62,6 +63,12 @@ if ! git diff --cached --quiet; then
         set -- git-rewrite-commits --staged --provider "$PROVIDER" --skip-remote-consent
     else
         set -- npx git-rewrite-commits --staged --provider "$PROVIDER" --skip-remote-consent
+    fi
+    
+    # Add model if configured (via environment variable or git config)
+    MODEL="${GIT_COMMIT_MODEL:-$(git config --get hooks.providerModel)}"
+    if [ -n "$MODEL" ]; then
+        set -- "$@" --model "$MODEL"
     fi
     
     # Add template if configured (via environment variable or git config)

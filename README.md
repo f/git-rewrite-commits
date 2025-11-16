@@ -118,6 +118,7 @@ git config hooks.prepareCommitMsg true
 
 # For privacy: use local Ollama instead of remote OpenAI
 git config hooks.commitProvider ollama
+git config hooks.providerModel llama3.2  # Optional: specify model
 ```
 
 **Step 3: Configure your AI provider:**
@@ -142,6 +143,9 @@ git config hooks.commitTemplate "[JIRA-XXX] feat: message"
 
 # Set language
 git config hooks.commitLanguage "es"  # Spanish, French, etc.
+
+# Set specific model
+git config hooks.providerModel "gpt-4"  # or "gpt-3.5-turbo", "llama3.2", etc.
 ```
 
 ## Usage
@@ -201,6 +205,7 @@ git config hooks.prepareCommitMsg true    # Auto-generate in editor
 
 # Configure provider
 git config hooks.commitProvider ollama  # or use OpenAI with OPENAI_API_KEY
+git config hooks.providerModel llama3.2  # Optional: specify model
 ```
 
 Now when you run `git commit`:
