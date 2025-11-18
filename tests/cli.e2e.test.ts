@@ -84,7 +84,7 @@ describe('CLI E2E', () => {
       const nonGitDir = fs.mkdtempSync(path.join(os.tmpdir(), 'non-git-'));
       try {
         await runCli('--dry-run', nonGitDir);
-        expect(true).toBe(false);
+        expect.fail();
       } catch (error: any) {
         expect(error.stderr).toContain('Not a git repository');
       } finally {
