@@ -30,7 +30,7 @@ describe('CLI E2E', () => {
     try {
       await runCli('--provider openai', process.cwd(), { ...process.env, OPENAI_API_KEY: '' });
       // Should fail
-      expect(true).toBe(false);
+      throw new Error('Expected to throw');
     } catch (error: any) {
       expect(error.stderr).toContain('OpenAI API key is required');
     }
@@ -84,7 +84,7 @@ describe('CLI E2E', () => {
       const nonGitDir = fs.mkdtempSync(path.join(os.tmpdir(), 'non-git-'));
       try {
         await runCli('--dry-run', nonGitDir);
-        expect(true).toBe(false);
+        throw new Error('Expected to throw');
       } catch (error: any) {
         expect(error.stderr).toContain('Not a git repository');
       } finally {
