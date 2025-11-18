@@ -11,7 +11,7 @@
     "build": "tsc",
     "dev": "tsx src/cli.ts",
     "prepublishOnly": "npm run build",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest run"
   },
   "keywords": [
     "git",
@@ -47,16 +47,17 @@
     "LICENSE"
   ],
   "dependencies": {
-    "openai": "^4.20.0",
-    "commander": "^11.1.0",
     "chalk": "^5.3.0",
-    "ora": "^7.0.1",
-    "node-fetch": "^3.3.2"
+    "commander": "^11.1.0",
+    "node-fetch": "^3.3.2",
+    "openai": "^4.20.0",
+    "ora": "^7.0.1"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
+    "tsx": "^4.6.2",
     "typescript": "^5.3.2",
-    "tsx": "^4.6.2"
+    "vitest": "^3.2.4"
   },
   "publishConfig": {
     "access": "public"
