@@ -129,6 +129,10 @@ async function installCommitHooks(): Promise<void> {
     console.log(chalk.gray('   ollama pull llama3.2'));
     console.log(chalk.gray('   ollama serve'));
     console.log(chalk.gray('   git config hooks.commitProvider ollama'));
+    console.log(chalk.gray('\n   # Option C: Claude Code (uses your Claude subscription, no API key needed)'));
+    console.log(chalk.gray('   npm install -g @anthropic-ai/claude-code'));
+    console.log(chalk.gray('   claude login'));
+    console.log(chalk.gray('   git config hooks.commitProvider claude-code'));
     
     console.log('\n3. Optional customizations:');
     console.log(chalk.gray('   git config hooks.commitTemplate "type(scope): message"'));
@@ -144,9 +148,9 @@ program
   .name('git-rewrite-commits')
   .description('AI-powered git commit message rewriter using OpenAI or Ollama')
   .version(packageJson.version)
-  .option('--provider <provider>', 'AI provider to use: "openai" or "ollama"', 'openai')
+  .option('--provider <provider>', 'AI provider to use: "openai", "ollama", or "claude-code"', 'openai')
   .option('-k, --api-key <key>', 'OpenAI API key (defaults to OPENAI_API_KEY env var)')
-  .option('-m, --model <model>', 'AI model to use (default: gpt-3.5-turbo for OpenAI, llama3.2 for Ollama)')
+  .option('-m, --model <model>', 'AI model to use (default: gpt-3.5-turbo for OpenAI, llama3.2 for Ollama, haiku for Claude Code)')
   .option('--ollama-url <url>', 'Ollama server URL', 'http://localhost:11434')
   .option('-b, --branch <branch>', 'Branch to rewrite (defaults to current branch)')
   .option('-d, --dry-run', 'Show what would be changed without modifying repository')
@@ -188,6 +192,11 @@ program
       if (provider === 'ollama' && !options.quiet) {
         console.log(chalk.blue('ℹ️  Using Ollama provider at ' + (options.ollamaUrl || 'http://localhost:11434')));
         console.log(chalk.gray('   Make sure Ollama is running: ollama serve'));
+      }
+
+      if (provider === 'claude-code' && !options.quiet) {
+        console.log(chalk.blue('ℹ️  Using Claude Code CLI provider'));
+        console.log(chalk.gray('   Make sure Claude Code is installed and authenticated: claude login'));
       }
 
       const rewriter = new GitCommitRewriter({
@@ -270,6 +279,10 @@ ${chalk.bold('Examples:')}
 
   ${chalk.gray('# Use Ollama with local models')}
   $ git-rewrite-commits --provider ollama --model llama3.2
+
+  ${chalk.gray('# Use Claude Code CLI (no API key needed, uses Claude subscription)')}
+  $ git-rewrite-commits --provider claude-code
+  $ git-rewrite-commits --provider claude-code --model opus
 
   ${chalk.gray('# Custom prompt for specific requirements')}
   $ git-rewrite-commits --prompt "generate humorous but professional messages"

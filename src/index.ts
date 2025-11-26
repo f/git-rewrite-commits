@@ -7,7 +7,7 @@ import ora from 'ora';
 import { AIProvider, createProvider } from './providers/index.js';
 
 export interface RewriteOptions {
-  provider?: 'openai' | 'ollama';
+  provider?: 'openai' | 'ollama' | 'claude-code';
   apiKey?: string;
   model?: string;
   ollamaUrl?: string;
@@ -38,7 +38,11 @@ export class GitCommitRewriter {
 
   constructor(options: RewriteOptions = {}) {
     const provider = options.provider || 'openai';
-    const model = options.model || (provider === 'ollama' ? 'llama3.2' : 'gpt-3.5-turbo');
+    const model = options.model || (
+      provider === 'ollama' ? 'llama3.2' :
+      provider === 'claude-code' ? 'haiku' :
+      'gpt-3.5-turbo'
+    );
     
     // Check for API key if using OpenAI
     if (provider === 'openai') {

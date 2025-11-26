@@ -15,6 +15,7 @@
 # ⚠️  PRIVACY NOTICE:
 # This hook sends your staged changes to an AI provider (OpenAI by default).
 # Use --provider ollama for local processing without remote API calls.
+# Use --provider claude-code to use Claude Code CLI (no API key needed, uses Claude subscription).
 
 COMMIT_MSG_FILE=$1
 COMMIT_SOURCE=$2
@@ -61,6 +62,7 @@ if [ -z "$COMMIT_SOURCE" ]; then
         # Not enabled, add helpful hint
         echo "# Tip: Enable AI commit messages with: git config hooks.prepareCommitMsg true" > "$COMMIT_MSG_FILE.tmp"
         echo "# Or use Ollama locally: git config hooks.commitProvider ollama" >> "$COMMIT_MSG_FILE.tmp"
+        echo "# Or use Claude Code: git config hooks.commitProvider claude-code" >> "$COMMIT_MSG_FILE.tmp"
         echo "# ⚠️  Note: This will send staged changes to an AI provider" >> "$COMMIT_MSG_FILE.tmp"
         echo "" >> "$COMMIT_MSG_FILE.tmp"
         cat "$COMMIT_MSG_FILE" >> "$COMMIT_MSG_FILE.tmp"
@@ -77,6 +79,7 @@ if [ -z "$COMMIT_SOURCE" ]; then
         # Add a helpful comment if API key is not set
         echo "# Tip: Set OPENAI_API_KEY to get AI-generated commit messages" > "$COMMIT_MSG_FILE.tmp"
         echo "# Or use Ollama: git config hooks.commitProvider ollama" >> "$COMMIT_MSG_FILE.tmp"
+        echo "# Or use Claude Code: git config hooks.commitProvider claude-code" >> "$COMMIT_MSG_FILE.tmp"
         echo "" >> "$COMMIT_MSG_FILE.tmp"
         cat "$COMMIT_MSG_FILE" >> "$COMMIT_MSG_FILE.tmp"
         mv "$COMMIT_MSG_FILE.tmp" "$COMMIT_MSG_FILE"
