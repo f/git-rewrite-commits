@@ -162,6 +162,8 @@ program
   .option('-q, --quiet', 'Suppress all informational output (useful for git hooks)')
   .option('--skip-remote-consent', 'Skip consent prompt for remote API calls (not recommended, use only in automated contexts)')
   .option('--install-hooks', 'Install AI commit message hooks (pre-commit and prepare-commit-msg)')
+  .option('--split', 'Analyze and split commits into smaller, more focused commits')
+  .option('--max-splits <number>', 'Maximum number of splits per commit (default: 5)', parseInt)
   .action(async (options) => {
     try {
       // Handle --install-hooks option
@@ -207,12 +209,17 @@ program
         language: options.language,
         prompt: options.prompt,
         skipRemoteConsent: options.skipRemoteConsent,
+        split: options.split,
+        maxSplits: options.maxSplits,
       });
 
       if (options.staged) {
         // Generate message for staged changes
         const message = await rewriter.generateForStaged();
         console.log(message);
+      } else if (options.split) {
+        // Split commits into smaller, more focused commits
+        await rewriter.split();
       } else {
         await rewriter.rewrite();
       }
@@ -276,6 +283,12 @@ ${chalk.bold('Examples:')}
 
   ${chalk.gray('# Explicitly pass API key for OpenAI')}
   $ git-rewrite-commits --api-key "sk-..."
+
+  ${chalk.gray('# Split commits into smaller, more focused commits')}
+  $ git-rewrite-commits --split
+  $ git-rewrite-commits --split --dry-run  ${chalk.gray('# Preview splits without applying')}
+  $ git-rewrite-commits --split --max-commits 5  ${chalk.gray('# Analyze only last 5 commits')}
+  $ git-rewrite-commits --split --max-splits 3  ${chalk.gray('# Maximum 3 splits per commit')}
 
 ${chalk.bold('Environment Variables:')}
   OPENAI_API_KEY    Your OpenAI API key (required when using OpenAI provider)
