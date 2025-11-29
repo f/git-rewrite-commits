@@ -23,6 +23,8 @@ export interface RewriteOptions {
   language?: string;
   prompt?: string;
   skipRemoteConsent?: boolean; // Skip consent prompt for remote API calls (not recommended)
+  split?: boolean; // Enable commit splitting mode
+  maxSplits?: number; // Maximum number of splits per commit (default: 5)
 }
 
 export interface CommitInfo {
@@ -30,6 +32,21 @@ export interface CommitInfo {
   message: string;
   files: string[];
   diff: string;
+}
+
+export interface SplitSuggestion {
+  files: string[];
+  description: string;
+  commitMessage: string;
+  diffContent: string;
+}
+
+export interface CommitSplitAnalysis {
+  hash: string;
+  originalMessage: string;
+  shouldSplit: boolean;
+  reason: string;
+  suggestions: SplitSuggestion[];
 }
 
 export class GitCommitRewriter {
@@ -595,6 +612,474 @@ process.stdin.on('end', () => {
     );
 
     return message;
+  }
+
+  private async analyzeCommitForSplit(commitInfo: CommitInfo): Promise<CommitSplitAnalysis> {
+    const maxSplits = this.options.maxSplits || 5;
+    
+    // If only one file changed, no need to split
+    if (commitInfo.files.length <= 1) {
+      return {
+        hash: commitInfo.hash,
+        originalMessage: commitInfo.message,
+        shouldSplit: false,
+        reason: 'Only one file changed',
+        suggestions: []
+      };
+    }
+
+    // Redact sensitive data from diff before sending to AI provider
+    const redactedDiff = this.redactSensitivePatterns(commitInfo.diff);
+    
+    const languageInstruction = this.options.language && this.options.language !== 'en' 
+      ? this.getLanguageInstructions(this.options.language)
+      : 'Write the commit messages in English.';
+
+    const prompt = `You are a git commit analyzer. Analyze the following commit and determine if it should be split into multiple smaller, more focused commits.
+
+Original commit message: "${commitInfo.message}"
+
+Files changed (${commitInfo.files.length}):
+${commitInfo.files.join('\n')}
+
+Git diff (truncated if too long, sensitive data redacted):
+${redactedDiff.substring(0, 12000)}
+
+Analyze this commit and determine if it should be split. A commit should be split if:
+1. It contains changes to unrelated features or components
+2. It mixes different types of changes (e.g., feature + refactor + docs)
+3. It modifies files that serve different purposes (e.g., source + tests + config)
+4. The changes could be logically separated for better git history
+
+Respond in JSON format ONLY (no markdown, no explanation):
+{
+  "shouldSplit": true/false,
+  "reason": "Brief explanation of why it should or should not be split",
+  "suggestions": [
+    {
+      "files": ["file1.ts", "file2.ts"],
+      "description": "Brief description of what this group of changes does",
+      "commitMessage": "conventional commit message for this split"
+    }
+  ]
+}
+
+Rules:
+- Maximum ${maxSplits} splits
+- Each file should appear in exactly one suggestion
+- Use conventional commit format (feat, fix, docs, refactor, test, chore, etc.)
+- ${languageInstruction}
+- If the commit should NOT be split, return empty suggestions array
+- Return ONLY valid JSON, no other text`;
+
+    const systemPrompt = 'You are a helpful assistant that analyzes git commits and suggests how to split them into smaller, more focused commits. Always respond with valid JSON only.';
+    
+    try {
+      const response = await this.provider.generateCommitMessage(prompt, systemPrompt);
+      
+      // Parse the JSON response
+      const cleanedResponse = response.trim().replace(/^```json\n?/, '').replace(/\n?```$/, '');
+      const analysis = JSON.parse(cleanedResponse);
+      
+      // Extract diff content for each suggestion
+      const suggestions: SplitSuggestion[] = (analysis.suggestions || []).map((s: { files: string[]; description: string; commitMessage: string }) => {
+        const diffContent = this.extractDiffForFiles(commitInfo.diff, s.files);
+        return {
+          files: s.files,
+          description: s.description,
+          commitMessage: s.commitMessage,
+          diffContent
+        };
+      });
+
+      return {
+        hash: commitInfo.hash,
+        originalMessage: commitInfo.message,
+        shouldSplit: analysis.shouldSplit,
+        reason: analysis.reason,
+        suggestions
+      };
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (this.options.verbose) {
+        console.error(chalk.red(`Error analyzing commit for split: ${errorMessage}`));
+      }
+      return {
+        hash: commitInfo.hash,
+        originalMessage: commitInfo.message,
+        shouldSplit: false,
+        reason: `Analysis failed: ${errorMessage}`,
+        suggestions: []
+      };
+    }
+  }
+
+  private extractDiffForFiles(fullDiff: string, files: string[]): string {
+    const diffParts: string[] = [];
+    const diffSections = fullDiff.split(/(?=^diff --git)/m);
+    
+    for (const section of diffSections) {
+      for (const file of files) {
+        if (section.includes(`a/${file}`) || section.includes(`b/${file}`)) {
+          diffParts.push(section);
+          break;
+        }
+      }
+    }
+    
+    return diffParts.join('\n');
+  }
+
+  private async performCommitSplit(commitInfo: CommitInfo, analysis: CommitSplitAnalysis): Promise<boolean> {
+    if (!analysis.shouldSplit || analysis.suggestions.length === 0) {
+      return false;
+    }
+
+    const currentBranch = this.getCurrentBranch();
+    
+    // We need to use interactive rebase to split the commit
+    // First, let's check if this is the most recent commit
+    const headHash = this.execCommand('git rev-parse HEAD').trim();
+    const isHeadCommit = commitInfo.hash === headHash;
+
+    if (!isHeadCommit) {
+      // For non-HEAD commits, we need to use rebase
+      if (!this.options.quiet) {
+        console.log(chalk.yellow(`\nNote: Splitting non-HEAD commit ${commitInfo.hash.substring(0, 8)} requires interactive rebase.`));
+        console.log(chalk.yellow('This will rewrite history for all commits after this one.'));
+      }
+    }
+
+    // Create a temporary branch to work on
+    const tempBranch = `split-temp-${Date.now()}`;
+    
+    try {
+      // Reset to the commit we want to split
+      if (isHeadCommit) {
+        // For HEAD commit, we can use soft reset
+        this.execCommand('git reset --soft HEAD~1');
+      } else {
+        // For older commits, we need to checkout to that point
+        this.execCommand(`git checkout ${commitInfo.hash}`);
+        this.execCommand(`git checkout -b ${tempBranch}`);
+        this.execCommand('git reset --soft HEAD~1');
+      }
+
+      // Now create the split commits
+      for (let i = 0; i < analysis.suggestions.length; i++) {
+        const suggestion = analysis.suggestions[i];
+        
+        // Stage only the files for this split
+        for (const file of suggestion.files) {
+          try {
+            this.execCommand(`git add "${file}"`);
+          } catch {
+            // File might not exist in working tree, skip
+            if (this.options.verbose) {
+              console.log(chalk.yellow(`  Skipping file (not found): ${file}`));
+            }
+          }
+        }
+
+        // Check if there are staged changes
+        const stagedStatus = this.execCommand('git diff --cached --name-only').trim();
+        if (stagedStatus) {
+          // Commit with the suggested message
+          const escapedMessage = suggestion.commitMessage.replace(/"/g, '\\"');
+          this.execCommand(`git commit -m "${escapedMessage}"`);
+          
+          if (!this.options.quiet) {
+            console.log(chalk.green(`  Created commit ${i + 1}/${analysis.suggestions.length}: ${suggestion.commitMessage}`));
+          }
+        }
+      }
+
+      // Check if there are any remaining unstaged changes
+      const remainingStatus = this.execCommand('git status --porcelain').trim();
+      if (remainingStatus) {
+        // Stage and commit remaining changes
+        this.execCommand('git add -A');
+        const remainingMessage = `chore: remaining changes from split of "${commitInfo.message}"`;
+        this.execCommand(`git commit -m "${remainingMessage}"`);
+        if (!this.options.quiet) {
+          console.log(chalk.yellow(`  Created additional commit for remaining changes`));
+        }
+      }
+
+      // If we were working on a non-HEAD commit, we need to rebase the rest
+      if (!isHeadCommit) {
+        // Get the commits that were after the split commit
+        const commitsAfter = this.execCommand(`git rev-list ${commitInfo.hash}..${currentBranch}`).trim().split('\n').filter(Boolean);
+        
+        if (commitsAfter.length > 0) {
+          // Cherry-pick the commits that came after
+          this.execCommand(`git checkout ${currentBranch}`);
+          this.execCommand(`git reset --hard ${tempBranch}`);
+          
+          for (const afterCommit of commitsAfter.reverse()) {
+            try {
+              this.execCommand(`git cherry-pick ${afterCommit}`);
+            } catch {
+              if (!this.options.quiet) {
+                console.log(chalk.red(`  Failed to cherry-pick ${afterCommit.substring(0, 8)}, manual resolution may be needed`));
+              }
+            }
+          }
+        } else {
+          // Just update the branch to point to our new commits
+          this.execCommand(`git checkout ${currentBranch}`);
+          this.execCommand(`git reset --hard ${tempBranch}`);
+        }
+        
+        // Clean up temp branch
+        try {
+          this.execCommand(`git branch -D ${tempBranch}`);
+        } catch {
+          // Ignore cleanup errors
+        }
+      }
+
+      return true;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (!this.options.quiet) {
+        console.error(chalk.red(`Error splitting commit: ${errorMessage}`));
+      }
+      
+      // Try to recover
+      try {
+        this.execCommand(`git checkout ${currentBranch}`);
+        this.execCommand(`git branch -D ${tempBranch} 2>/dev/null || true`);
+      } catch {
+        // Ignore recovery errors
+      }
+      
+      return false;
+    }
+  }
+
+  public async split(): Promise<void> {
+    if (!this.options.quiet) {
+      console.log(chalk.cyan.bold('\n🔀 git-rewrite-commits --split\n'));
+    }
+
+    // Check git repository
+    this.checkGitRepository();
+
+    // Get current branch
+    const currentBranch = this.getCurrentBranch();
+    if (!this.options.quiet) {
+      console.log(chalk.blue(`Current branch: ${currentBranch}`));
+    }
+
+    // Check for uncommitted changes
+    const status = this.checkUncommittedChanges();
+    if (status) {
+      if (!this.options.quiet) {
+        console.log(chalk.red('\n❌ Error: You have uncommitted changes!'));
+        console.log(chalk.yellow('Please commit or stash them before splitting commits.'));
+      }
+      throw new Error('Uncommitted changes detected. Please commit or stash them first.');
+    }
+
+    // Get commits to analyze
+    const commits = this.getCommits();
+    if (!this.options.quiet) {
+      console.log(chalk.green(`\nFound ${commits.length} commits to analyze for splitting`));
+    }
+
+    if (commits.length === 0) {
+      if (!this.options.quiet) {
+        console.log(chalk.yellow('No commits found to analyze.'));
+      }
+      return;
+    }
+
+    // Check for consent to send data to remote AI provider (if applicable)
+    const hasConsent = await this.checkRemoteAPIConsent();
+    if (!hasConsent) {
+      process.exit(0);
+    }
+
+    // Warning about rewriting history
+    if (!this.options.dryRun) {
+      if (!this.options.quiet) {
+        console.log(chalk.red.bold('\n⚠️  WARNING: This will REWRITE your git history!'));
+        console.log(chalk.red('Splitting commits changes commit hashes and requires force-pushing.'));
+        console.log(chalk.yellow('Make sure to:'));
+        console.log(chalk.yellow('  1. Work on a separate branch'));
+        console.log(chalk.yellow('  2. Have a backup of your repository'));
+        console.log(chalk.yellow('  3. Coordinate with your team if this is a shared repository'));
+      }
+
+      const confirm = await this.askConfirmation('\nDo you want to proceed with analyzing commits for splitting?');
+      if (!confirm) {
+        if (!this.options.quiet) {
+          console.log(chalk.yellow('Operation cancelled.'));
+        }
+        process.exit(0);
+      }
+    }
+
+    // Create backup branch
+    let backupBranch: string | undefined;
+    if (!this.options.skipBackup && !this.options.dryRun) {
+      backupBranch = this.createBackupBranch(currentBranch);
+      if (!this.options.quiet) {
+        console.log(chalk.green(`\n✅ Created backup branch: ${backupBranch}`));
+      }
+    }
+
+    // Analyze commits for potential splits
+    if (!this.options.quiet) {
+      console.log(chalk.cyan('\n🔍 Analyzing commits for potential splits...\n'));
+    }
+
+    const spinner = ora();
+    const splittableCommits: { commitInfo: CommitInfo; analysis: CommitSplitAnalysis }[] = [];
+
+    // Process commits from newest to oldest for splitting
+    const reversedCommits = [...commits].reverse();
+
+    for (let i = 0; i < reversedCommits.length; i++) {
+      const hash = reversedCommits[i];
+      const progress = ((i + 1) / reversedCommits.length * 100).toFixed(1);
+
+      try {
+        const commitInfo = await this.getCommitInfo(hash);
+        spinner.start(chalk.blue(`[${progress}%] Analyzing: ${hash.substring(0, 8)} - "${commitInfo.message}"`));
+
+        const analysis = await this.analyzeCommitForSplit(commitInfo);
+
+        if (analysis.shouldSplit && analysis.suggestions.length > 0) {
+          splittableCommits.push({ commitInfo, analysis });
+          spinner.succeed(chalk.green(`[${progress}%] ${hash.substring(0, 8)}: Can be split into ${analysis.suggestions.length} commits - ${analysis.reason}`));
+          
+          if (this.options.verbose) {
+            console.log(chalk.gray('  Suggested splits:'));
+            for (const suggestion of analysis.suggestions) {
+              console.log(chalk.gray(`    • ${suggestion.commitMessage}`));
+              console.log(chalk.gray(`      Files: ${suggestion.files.join(', ')}`));
+            }
+          }
+        } else {
+          spinner.info(chalk.cyan(`[${progress}%] ${hash.substring(0, 8)}: No split needed - ${analysis.reason}`));
+        }
+
+        // Add a small delay to avoid rate limiting
+        if (i < reversedCommits.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        spinner.fail(chalk.red(`[${progress}%] Error analyzing ${hash.substring(0, 8)}: ${errorMessage}`));
+      }
+    }
+
+    // Summary
+    if (!this.options.quiet) {
+      console.log(chalk.cyan('\n📊 Analysis Summary:'));
+      console.log(chalk.blue(`  • Total commits analyzed: ${commits.length}`));
+      console.log(chalk.green(`  • Commits that can be split: ${splittableCommits.length}`));
+    }
+
+    if (splittableCommits.length === 0) {
+      if (!this.options.quiet) {
+        console.log(chalk.green('\n✨ No commits need splitting! Your history is already well-organized.'));
+      }
+      if (backupBranch) {
+        this.execCommand(`git branch -D ${backupBranch}`);
+        if (!this.options.quiet) {
+          console.log(chalk.gray(`Removed unnecessary backup branch: ${backupBranch}`));
+        }
+      }
+      return;
+    }
+
+    // Show detailed split suggestions
+    if (!this.options.quiet) {
+      console.log(chalk.cyan('\n📋 Proposed Splits:\n'));
+      for (const { commitInfo, analysis } of splittableCommits) {
+        console.log(chalk.yellow(`Commit ${commitInfo.hash.substring(0, 8)}: "${commitInfo.message}"`));
+        console.log(chalk.gray(`  Reason: ${analysis.reason}`));
+        console.log(chalk.gray('  Will be split into:'));
+        for (let i = 0; i < analysis.suggestions.length; i++) {
+          const suggestion = analysis.suggestions[i];
+          console.log(chalk.green(`    ${i + 1}. ${suggestion.commitMessage}`));
+          console.log(chalk.gray(`       Files: ${suggestion.files.join(', ')}`));
+        }
+        console.log('');
+      }
+    }
+
+    // Dry run mode
+    if (this.options.dryRun) {
+      if (!this.options.quiet) {
+        console.log(chalk.yellow('\n🔍 Dry run completed. No changes were made to your repository.'));
+        console.log(chalk.blue('Review the proposed splits above and run without --dry-run to apply them.'));
+      }
+      return;
+    }
+
+    // Confirm before applying
+    const applySplits = await this.askConfirmation('\nDo you want to apply these splits?');
+    if (!applySplits) {
+      if (!this.options.quiet) {
+        console.log(chalk.yellow('Split operation cancelled. Your history remains unchanged.'));
+      }
+      if (backupBranch) {
+        if (!this.options.quiet) {
+          console.log(chalk.blue(`You can restore from backup branch: ${backupBranch}`));
+        }
+      }
+      return;
+    }
+
+    // Apply splits (process from newest to oldest to avoid rebase complications)
+    if (!this.options.quiet) {
+      console.log(chalk.cyan('\n🔄 Applying splits...\n'));
+    }
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const { commitInfo, analysis } of splittableCommits) {
+      if (!this.options.quiet) {
+        console.log(chalk.blue(`\nSplitting commit ${commitInfo.hash.substring(0, 8)}...`));
+      }
+
+      const success = await this.performCommitSplit(commitInfo, analysis);
+      if (success) {
+        successCount++;
+        if (!this.options.quiet) {
+          console.log(chalk.green(`✅ Successfully split commit ${commitInfo.hash.substring(0, 8)}`));
+        }
+      } else {
+        failCount++;
+        if (!this.options.quiet) {
+          console.log(chalk.red(`❌ Failed to split commit ${commitInfo.hash.substring(0, 8)}`));
+        }
+      }
+    }
+
+    // Final summary
+    if (!this.options.quiet) {
+      console.log(chalk.cyan('\n📊 Split Results:'));
+      console.log(chalk.green(`  • Successfully split: ${successCount} commits`));
+      if (failCount > 0) {
+        console.log(chalk.red(`  • Failed: ${failCount} commits`));
+      }
+
+      if (successCount > 0) {
+        console.log(chalk.yellow.bold('\n📌 Important next steps:'));
+        console.log(chalk.yellow('  1. Review the changes: git log --oneline'));
+        console.log(chalk.yellow('  2. If satisfied, force push: git push --force-with-lease'));
+        if (backupBranch) {
+          console.log(chalk.yellow(`  3. If something went wrong, restore: git reset --hard ${backupBranch}`));
+          console.log(chalk.yellow(`  4. Clean up backup when done: git branch -D ${backupBranch}`));
+        }
+      }
+    }
   }
 
   public async rewrite(): Promise<void> {
