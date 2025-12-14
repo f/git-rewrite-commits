@@ -58,6 +58,7 @@ ollama serve
 ## Features
 - **AI-powered commit message generation** using OpenAI GPT or local Ollama models
 - **Rewrite entire git history** with better commit messages
+- **Commit splitting** - Split large commits into smaller, focused commits for cleaner history
 - **Conventional commits** format (feat, fix, chore, etc.)
 - **Multi-language support** - generate commits in any language
 - **Smart filtering** - skip already well-formed commits
@@ -237,6 +238,12 @@ npx git-rewrite-commits --provider ollama
 
 # Install/update git hooks
 npx git-rewrite-commits --install-hooks
+
+# Split commits into smaller, focused commits
+npx git-rewrite-commits --split
+
+# Preview splits without applying (dry run)
+npx git-rewrite-commits --split --dry-run
 ```
 
 ## Real-World Examples
@@ -277,6 +284,32 @@ echo "Apply changes? (y/n)"
 read answer
 if [ "$answer" = "y" ]; then
 ```
+
+### Splitting Large Commits
+
+The `--split` option analyzes your commits and suggests how to split them into smaller, more focused commits. This is useful for cleaning up messy commits that contain multiple unrelated changes.
+
+```bash
+# Analyze and split commits (with preview)
+npx git-rewrite-commits --split --dry-run
+
+# Apply splits to the last 5 commits
+npx git-rewrite-commits --split --max-commits 5
+
+# Limit maximum splits per commit
+npx git-rewrite-commits --split --max-splits 3
+
+# Use with Ollama for local processing
+npx git-rewrite-commits --split --provider ollama
+```
+
+The AI analyzes each commit and determines if it should be split based on:
+- Different files serving different purposes (source vs tests vs config)
+- Different types of changes (feature + refactor + docs)
+- Unrelated functionality grouped together
+- Changes that could be logically separated for better history
+
+Each split gets its own conventional commit message, making your git history cleaner and more rollback-friendly.
 
 ### Alias for Quick Fixes
 
