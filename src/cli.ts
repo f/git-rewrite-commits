@@ -133,6 +133,13 @@ async function installCommitHooks(): Promise<void> {
     console.log(chalk.gray('   npm install -g @anthropic-ai/claude-code'));
     console.log(chalk.gray('   claude login'));
     console.log(chalk.gray('   git config hooks.commitProvider claude-code'));
+    console.log(chalk.gray('\n   # Option D: Gemini (sends data to Google API)'));
+    if (isWindows) {
+      console.log(chalk.gray('   set GEMINI_API_KEY="your-api-key"'));
+    } else {
+      console.log(chalk.gray('   export GEMINI_API_KEY="your-api-key"'));
+    }
+    console.log(chalk.gray('   git config hooks.commitProvider gemini'));
     
     console.log('\n3. Optional customizations:');
     console.log(chalk.gray('   git config hooks.commitTemplate "type(scope): message"'));
@@ -148,9 +155,9 @@ program
   .name('git-rewrite-commits')
   .description('AI-powered git commit message rewriter using OpenAI or Ollama')
   .version(packageJson.version)
-  .option('--provider <provider>', 'AI provider to use: "openai", "ollama", or "claude-code"', 'openai')
-  .option('-k, --api-key <key>', 'OpenAI API key (defaults to OPENAI_API_KEY env var)')
-  .option('-m, --model <model>', 'AI model to use (default: gpt-3.5-turbo for OpenAI, llama3.2 for Ollama, haiku for Claude Code)')
+  .option('--provider <provider>', 'AI provider to use: "openai", "ollama", "claude-code", or "gemini"', 'openai')
+  .option('-k, --api-key <key>', 'API key for the selected provider (defaults to OPENAI_API_KEY or GEMINI_API_KEY env var)')
+  .option('-m, --model <model>', 'AI model to use (default: gpt-3.5-turbo for OpenAI, llama3.2 for Ollama, haiku for Claude Code, gemini-2.5-flash-lite for Gemini)')
   .option('--ollama-url <url>', 'Ollama server URL', 'http://localhost:11434')
   .option('-b, --branch <branch>', 'Branch to rewrite (defaults to current branch)')
   .option('-d, --dry-run', 'Show what would be changed without modifying repository')
@@ -176,15 +183,23 @@ program
 
       // Check for API key if using OpenAI
       const provider = options.provider || 'openai';
-      const apiKey = options.apiKey || process.env.OPENAI_API_KEY;
-      
-      if (provider === 'openai' && !apiKey) {
+
+      if (provider === 'openai' && !options.apiKey && !process.env.OPENAI_API_KEY) {
         console.error(chalk.red('\n❌ Error: OpenAI API key is required!'));
         console.error(chalk.yellow('\nPlease provide it using one of these methods:'));
         console.error(chalk.cyan('  1. Set environment variable: export OPENAI_API_KEY="your-api-key"'));
         console.error(chalk.cyan('  2. Pass as argument: git-rewrite-commits --api-key "your-api-key"'));
         console.error(chalk.dim('\nGet your API key at: https://platform.openai.com/api-keys'));
         console.error(chalk.blue('\n💡 Tip: Use --provider ollama to use local models with Ollama instead'));
+        process.exit(1);
+      }
+
+      if (provider === 'gemini' && !options.apiKey && !process.env.GEMINI_API_KEY) {
+        console.error(chalk.red('\n❌ Error: Gemini API key is required!'));
+        console.error(chalk.yellow('\nPlease provide it using one of these methods:'));
+        console.error(chalk.cyan('  1. Set environment variable: export GEMINI_API_KEY="your-api-key"'));
+        console.error(chalk.cyan('  2. Pass as argument: git-rewrite-commits --provider gemini --api-key "your-api-key"'));
+        console.error(chalk.dim('\nGet your API key at: https://aistudio.google.com/app/apikey'));
         process.exit(1);
       }
       
@@ -199,9 +214,14 @@ program
         console.log(chalk.gray('   Make sure Claude Code is installed and authenticated: claude login'));
       }
 
+      if (provider === 'gemini' && !options.quiet) {
+        console.log(chalk.blue('ℹ️  Using Gemini provider'));
+        console.log(chalk.gray('   Make sure GEMINI_API_KEY is set or pass --api-key'));
+      }
+
       const rewriter = new GitCommitRewriter({
         provider: provider,
-        apiKey,
+        apiKey: options.apiKey || (provider === 'gemini' ? process.env.GEMINI_API_KEY : process.env.OPENAI_API_KEY),
         model: options.model,
         ollamaUrl: options.ollamaUrl,
         branch: options.branch,
@@ -280,9 +300,13 @@ ${chalk.bold('Examples:')}
   ${chalk.gray('# Use Ollama with local models')}
   $ git-rewrite-commits --provider ollama --model llama3.2
 
-  ${chalk.gray('# Use Claude Code CLI (no API key needed, uses Claude subscription)')}
+   ${chalk.gray('# Use Claude Code CLI (no API key needed, uses Claude subscription)')}
   $ git-rewrite-commits --provider claude-code
   $ git-rewrite-commits --provider claude-code --model opus
+
+  ${chalk.gray('# Use Gemini (gemini-2.5-flash-lite by default)')}
+  $ git-rewrite-commits --provider gemini
+  $ git-rewrite-commits --provider gemini --model gemini-2.5-flash-lite --api-key "your-key"
 
   ${chalk.gray('# Custom prompt for specific requirements')}
   $ git-rewrite-commits --prompt "generate humorous but professional messages"
@@ -292,6 +316,7 @@ ${chalk.bold('Examples:')}
 
 ${chalk.bold('Environment Variables:')}
   OPENAI_API_KEY    Your OpenAI API key (required when using OpenAI provider)
+  GEMINI_API_KEY    Your Gemini API key (required when using Gemini provider)
 
 ${chalk.bold('Important Notes:')}
   ${chalk.yellow('⚠️  This tool rewrites git history!')}

@@ -7,7 +7,7 @@ import ora from 'ora';
 import { AIProvider, createProvider } from './providers/index.js';
 
 export interface RewriteOptions {
-  provider?: 'openai' | 'ollama' | 'claude-code';
+  provider?: 'openai' | 'ollama' | 'claude-code' | 'gemini';
   apiKey?: string;
   model?: string;
   ollamaUrl?: string;
@@ -41,6 +41,7 @@ export class GitCommitRewriter {
     const model = options.model || (
       provider === 'ollama' ? 'llama3.2' :
       provider === 'claude-code' ? 'haiku' :
+      provider === 'gemini' ? 'gemini-2.5-flash-lite' :
       'gpt-3.5-turbo'
     );
     
@@ -74,7 +75,7 @@ export class GitCommitRewriter {
 
   private execCommand(command: string): string {
     try {
-      return execSync(command, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
+      return execSync(command, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024, stdio: ['pipe', 'pipe', 'pipe'] });
     } catch (error: any) {
       throw new Error(`Command failed: ${command}\n${error.message}`);
     }

@@ -4,7 +4,7 @@ export interface AIProvider {
 }
 
 export interface ProviderOptions {
-  provider?: 'openai' | 'ollama' | 'claude-code';
+  provider?: 'openai' | 'ollama' | 'claude-code' | 'gemini';
   apiKey?: string;
   model?: string;
   ollamaUrl?: string;
