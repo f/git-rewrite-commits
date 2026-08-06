@@ -500,7 +500,38 @@ Return ONLY the commit message, nothing else. No explanations, just the message.
     return backupBranch;
   }
 
-  private async rewriteHistory(mappingFile: string, counterFile: string): Promise<void> {
+  /**
+   * Determine the exact revision range that `git filter-branch` should rewrite.
+   *
+   * `orderedMessages` contains exactly one entry per commit in `commits`, in the
+   * same oldest-to-newest order that `git filter-branch` walks history internally.
+   * If we simply tell filter-branch to rewrite `HEAD`, it will rewrite the *entire*
+   * history from the very first commit onward - not just the commits we processed
+   * (this matters whenever `--max-commits` is used). That mismatch causes the
+   * counter-based msg-filter to apply messages generated for recent commits onto
+   * much older commits (in the worst case, the repository's root commit).
+   *
+   * To avoid this, we anchor the rewrite to the oldest commit we actually
+   * processed: `<parent-of-oldest-processed-commit>..HEAD`. If that commit has no
+   * parent (it IS the root commit - i.e. we processed the entire history), we fall
+   * back to rewriting `HEAD` as before, since that already covers the whole repo.
+   */
+  private getRewriteRange(commits: string[]): string {
+    if (commits.length === 0) {
+      return 'HEAD';
+    }
+
+    const oldestProcessed = commits[0];
+    try {
+      // Throws if oldestProcessed has no parent (i.e. it's the root commit)
+      this.execCommand(`git rev-parse --verify ${oldestProcessed}^`);
+      return `${oldestProcessed}^..HEAD`;
+    } catch {
+      return 'HEAD';
+    }
+  }
+
+  private async rewriteHistory(mappingFile: string, counterFile: string, rewriteRange: string): Promise<void> {
     // Initialize the counter file
     fs.writeFileSync(counterFile, '0');
 
@@ -545,7 +576,10 @@ process.stdin.on('end', () => {
       // Properly escape the filter script path for Windows paths with spaces
       // Use double quotes around the entire msg-filter command
       const escapedFilterScript = filterScript.replace(/\\/g, '/');
-      this.execCommand(`git filter-branch -f --msg-filter "node \\"${escapedFilterScript}\\"" HEAD`);
+      // Restrict the rewrite to exactly the commits we processed above (see
+      // getRewriteRange) so the msg-filter's counter stays in sync with
+      // orderedMessages instead of drifting across unrelated older commits.
+      this.execCommand(`git filter-branch -f --msg-filter "node \\"${escapedFilterScript}\\"" ${rewriteRange}`);
     } finally {
       // Clean up temporary files
       if (fs.existsSync(filterScript)) {
@@ -872,7 +906,8 @@ process.stdin.on('end', () => {
     }
     
     try {
-      await this.rewriteHistory(mappingFile, counterFile);
+      const rewriteRange = this.getRewriteRange(commits);
+      await this.rewriteHistory(mappingFile, counterFile, rewriteRange);
       
       if (!this.options.quiet) {
         console.log(chalk.green.bold('\n✅ Successfully rewrote git history!'));
