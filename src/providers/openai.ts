@@ -5,7 +5,7 @@ export class OpenAIProvider implements AIProvider {
   private openai: OpenAI;
   private model: string;
 
-  constructor(apiKey: string, model: string = 'gpt-3.5-turbo') {
+  constructor(apiKey: string, model: string = 'gpt-6-luna') {
     if (!apiKey) {
       throw new Error('OpenAI API key is required');
     }
@@ -26,8 +26,8 @@ export class OpenAIProvider implements AIProvider {
           content: prompt,
         },
       ],
-      temperature: 0.3,
-      max_tokens: 200,
+      reasoning_effort: 'none',
+      max_completion_tokens: 200,
     });
 
     const message = response.choices[0]?.message?.content?.trim();
